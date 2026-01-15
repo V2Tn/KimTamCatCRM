@@ -1,0 +1,5 @@
+{
+  "name": "Eisenhower AI Task Manager",
+  "description": "An enterprise-grade task management system using the Eisenhower Matrix with AI-powered task classification and strict RBAC (Role-Based Access Control).",
+  "requestFramePermissions": []
+}
