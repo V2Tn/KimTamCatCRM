@@ -70,132 +70,152 @@ export const TaskCreateModal: React.FC<TaskCreateModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-200 border border-white/20">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[1000] flex items-center justify-center p-0 md:p-4 animate-in fade-in duration-300">
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar { display: none !important; }
+        .hide-scrollbar { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+      `}</style>
+      <div className="bg-white md:rounded-[2.5rem] shadow-2xl w-full max-w-6xl h-full md:h-auto md:max-h-[95vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-white/20">
         
-        {/* Header */}
-        <div className="px-10 py-6 relative flex items-center justify-center shrink-0 bg-slate-50 border-b border-slate-100">
-          <h2 className="text-xl font-black uppercase tracking-[0.2em] text-slate-950">Tạo công việc mới</h2>
-          <button onClick={onClose} className="absolute right-8 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-all shadow-sm font-bold">✕</button>
+        {/* Header - Đồng bộ với TaskDetail */}
+        <div className={`px-6 md:px-10 py-5 md:py-6 relative flex items-center justify-center shrink-0 ${QUADRANT_CONFIG[quadrant].bgColor} border-b ${QUADRANT_CONFIG[quadrant].borderColor}`}>
+          <h2 className={`text-lg md:text-xl font-black uppercase tracking-[0.2em] ${QUADRANT_CONFIG[quadrant].color}`}>
+            {QUADRANT_CONFIG[quadrant].title}
+          </h2>
+          <button onClick={onClose} className="absolute right-6 md:right-8 top-1/2 -translate-y-1/2 w-9 h-9 md:w-10 md:h-10 rounded-full bg-white hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-all shadow-sm font-bold">✕</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex">
-          {/* Main Content Area */}
-          <div className="flex-1 p-10 space-y-8 overflow-y-auto custom-scrollbar bg-white">
-            <div className="space-y-2">
-              <label className="text-[11px] font-black text-slate-950 uppercase tracking-[0.2em] ml-1">Tiêu đề công việc</label>
-              <input 
-                autoFocus
-                value={title} 
-                onChange={e => setTitle(e.target.value)}
-                placeholder="Nhập tên nhiệm vụ..." 
-                className="w-full text-3xl font-black text-slate-900 placeholder:text-slate-100 border-b-4 border-slate-50 focus:border-indigo-600 outline-none transition-all py-2 bg-transparent"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
+          {/* Main Scrollable Body - Duy nhất một vùng cuộn */}
+          <div className="flex-1 overflow-y-auto p-6 md:p-12 hide-scrollbar">
+            <div className="grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr] gap-8 md:gap-12">
+              
+              {/* Cột 1: Tiêu đề & Mô tả (Hiện trước trên mobile) */}
+              <div className="space-y-6 md:space-y-8">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-950 uppercase tracking-[0.2em] ml-1">Tiêu đề công việc</label>
+                  <input 
+                    autoFocus
+                    value={title} 
+                    onChange={e => setTitle(e.target.value)}
+                    placeholder="Nhập tên nhiệm vụ..." 
+                    className="w-full text-xl md:text-3xl font-black text-slate-900 placeholder:text-slate-200 border-b-2 md:border-b-4 border-slate-50 focus:border-indigo-600 outline-none transition-all py-2 bg-transparent"
+                  />
+                </div>
 
-            <div className="flex-1 flex flex-col space-y-3">
-              <label className="text-[11px] font-black text-slate-950 uppercase tracking-[0.2em] ml-1">Mô tả</label>
-              <textarea 
-                value={description} 
-                onChange={e => setDescription(e.target.value)}
-                placeholder="Ghi chú nội dung thực hiện tại đây..." 
-                className="w-full min-h-[220px] p-6 bg-slate-50/50 rounded-[2rem] border-2 border-transparent focus:bg-white focus:border-indigo-100 outline-none text-base font-medium text-slate-700 leading-relaxed resize-none transition-all custom-scrollbar"
-              />
-            </div>
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-950 uppercase tracking-[0.2em] ml-1">Mô tả</label>
+                  <textarea 
+                    value={description} 
+                    onChange={e => setDescription(e.target.value)}
+                    placeholder="Ghi chú nội dung thực hiện..." 
+                    className="w-full min-h-[150px] md:min-h-[220px] p-5 md:p-8 bg-slate-50/50 rounded-[1.5rem] md:rounded-[2rem] border-2 border-transparent focus:bg-white focus:border-indigo-100 outline-none text-sm md:text-base font-bold text-slate-700 leading-relaxed resize-none transition-all hide-scrollbar"
+                  />
+                </div>
 
-            <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-3 px-6 py-3 bg-white border-2 border-slate-100 hover:border-indigo-600 rounded-2xl cursor-pointer transition-all active:scale-95 group shadow-sm">
-                  <span className="text-xl">📎</span>
-                  <span className="text-[10px] font-black text-slate-950 uppercase tracking-widest">Đính kèm tài liệu</span>
-                  <input type="file" multiple className="hidden" onChange={handleFileChange} />
-                </label>
-                {attachments.length > 0 && <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100">{attachments.length} Tệp tin</span>}
+                {/* Đính kèm - Hiện dưới Mô tả */}
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-3 px-6 py-3 bg-white border-2 border-slate-100 hover:border-indigo-600 rounded-2xl cursor-pointer transition-all active:scale-95 group shadow-sm">
+                    <span className="text-xl">📎</span>
+                    <span className="text-[10px] font-black text-slate-950 uppercase tracking-widest">Đính kèm tài liệu</span>
+                    <input type="file" multiple className="hidden" onChange={handleFileChange} />
+                  </label>
+                  {attachments.length > 0 && (
+                    <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
+                      {attachments.length} TỆP TIN
+                    </span>
+                  )}
+                </div>
               </div>
 
-              <button 
-                type="submit" 
-                className="px-14 py-4 bg-indigo-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all active:scale-95 flex items-center gap-4 group"
-              >
-                Tạo công việc
-                <span className="text-xl group-hover:translate-x-1 transition-transform">→</span>
-              </button>
+              {/* Cột 2: Cấu hình (Hiện sau trên mobile) */}
+              <div className="space-y-6 md:space-y-8 bg-slate-50/50 p-6 md:p-8 rounded-[2.5rem] border border-slate-100">
+                
+                {/* Quadrant Selector */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest ml-1 italic">Loại công việc</label>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {(Object.keys(QUADRANT_CONFIG) as Quadrant[]).map((q) => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => setQuadrant(q)}
+                        className={`flex items-center justify-center p-3 rounded-2xl border-2 transition-all text-center ${
+                          quadrant === q 
+                            ? `${QUADRANT_CONFIG[q].borderColor} ${QUADRANT_CONFIG[q].bgColor} shadow-sm border-indigo-500 ring-2 ring-indigo-50` 
+                            : 'bg-white border-slate-100 text-slate-300 opacity-60'
+                        }`}
+                      >
+                        <span className={`text-[9px] font-black uppercase tracking-widest leading-tight ${quadrant === q ? QUADRANT_CONFIG[q].color : ''}`}>
+                          {QUADRANT_CONFIG[q].title}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <UserSelect 
+                  label="Người thực hiện"
+                  placeholder="Chọn người thực hiện..."
+                  users={users}
+                  selectedValues={selectedAssigneeIds}
+                  onChange={setSelectedAssigneeIds}
+                  multiple={false}
+                  disabled={!canChangeAssignee}
+                />
+
+                <UserSelect 
+                  label="Người theo dõi"
+                  placeholder="Chọn người cùng theo dõi..."
+                  users={users}
+                  selectedValues={selectedFollowerIds}
+                  onChange={setSelectedFollowerIds}
+                  multiple={true}
+                />
+
+                {/* DateTime Selection */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest block ml-1">Bắt đầu</label>
+                    <input 
+                      type="datetime-local" 
+                      value={startDate} 
+                      onChange={(e) => setStartDate(e.target.value)} 
+                      className="w-full px-3 py-3 bg-white rounded-xl border-2 border-slate-100 shadow-sm text-[10px] font-black text-slate-700 outline-none focus:border-indigo-400 transition-all" 
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest block ml-1">Kết thúc</label>
+                    <input 
+                      type="datetime-local" 
+                      value={endDate} 
+                      onChange={(e) => setEndDate(e.target.value)} 
+                      className="w-full px-3 py-3 bg-white rounded-xl border-2 border-slate-100 shadow-sm text-[10px] font-black text-red-600 outline-none focus:border-red-400 transition-all" 
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-[9px] font-black text-center uppercase tracking-widest">
+                    ⚠️ {error}
+                  </div>
+                )}
+                
+                {/* Khoảng đệm để dropdown không bị che khi cuộn xuống đáy */}
+                <div className="h-20 md:h-0"></div>
+              </div>
             </div>
           </div>
 
-          {/* Configuration Sidebar - Optimized layout to remove scrollbar */}
-          <div className="w-[400px] bg-slate-50/50 border-l border-slate-100 p-6 space-y-5 overflow-y-auto scrollbar-hide">
-            <style>{`.scrollbar-hide::-webkit-scrollbar { display: none; } .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
-            
-            {/* Quadrant Selector */}
-            <div className="space-y-2.5">
-              <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest ml-1">Loại công việc</label>
-              <div className="grid grid-cols-2 gap-2">
-                {(Object.keys(QUADRANT_CONFIG) as Quadrant[]).map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => setQuadrant(q)}
-                    className={`flex items-center justify-center p-2.5 rounded-2xl border-2 transition-all text-center ${
-                      quadrant === q 
-                        ? `${QUADRANT_CONFIG[q].borderColor} ${QUADRANT_CONFIG[q].bgColor} shadow-sm border-indigo-400 ring-2 ring-indigo-100` 
-                        : 'bg-white border-slate-100 text-slate-400 opacity-60'
-                    }`}
-                  >
-                    <span className={`text-[9px] font-black uppercase tracking-widest leading-tight ${quadrant === q ? QUADRANT_CONFIG[q].color : ''}`}>
-                      {QUADRANT_CONFIG[q].title}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <UserSelect 
-              label="Người thực hiện"
-              placeholder="Chọn người thực hiện..."
-              users={users}
-              selectedValues={selectedAssigneeIds}
-              onChange={setSelectedAssigneeIds}
-              multiple={false}
-              disabled={!canChangeAssignee}
-            />
-
-            <UserSelect 
-              label="Người theo dõi"
-              placeholder="Chọn người cùng theo dõi..."
-              users={users}
-              selectedValues={selectedFollowerIds}
-              onChange={setSelectedFollowerIds}
-              multiple={true}
-            />
-
-            {/* DateTime Selection */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest block ml-1">Bắt đầu</label>
-                <input 
-                  type="datetime-local" 
-                  value={startDate} 
-                  onChange={(e) => setStartDate(e.target.value)} 
-                  className="w-full px-2.5 py-2.5 bg-white rounded-xl border-2 border-slate-100 shadow-sm text-[10px] font-black text-slate-700 outline-none focus:border-indigo-400 transition-all cursor-pointer" 
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest block ml-1">Kết thúc</label>
-                <input 
-                  type="datetime-local" 
-                  value={endDate} 
-                  onChange={(e) => setEndDate(e.target.value)} 
-                  className="w-full px-2.5 py-2.5 bg-white rounded-xl border-2 border-slate-100 shadow-sm text-[10px] font-black text-red-600 outline-none focus:border-red-400 transition-all cursor-pointer" 
-                />
-              </div>
-            </div>
-
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-[9px] font-black text-center uppercase">
-                {error}
-              </div>
-            )}
+          {/* Sticky Footer - Luôn cố định ở đáy */}
+          <div className="sticky bottom-0 shrink-0 px-6 py-6 md:py-8 bg-white border-t border-slate-50 flex justify-center items-center z-[50]">
+            <button 
+              type="submit" 
+              className="w-full md:w-auto px-12 md:px-24 py-5 md:py-6 bg-indigo-600 text-white rounded-2xl text-[13px] font-black uppercase tracking-[0.25em] shadow-2xl hover:bg-black transition-all active:scale-95 flex items-center justify-center gap-6 group"
+            >
+              Tạo công việc
+              <span className="text-2xl group-hover:translate-x-1 transition-transform">→</span>
+            </button>
           </div>
         </form>
       </div>

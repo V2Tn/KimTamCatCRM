@@ -26,6 +26,12 @@ export const UserSelect: React.FC<UserSelectProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Giả định currentUserId có thể được lấy từ auth_user trong localStorage nếu không được truyền vào
+  const currentUserId = useMemo(() => {
+    const saved = localStorage.getItem('auth_user');
+    return saved ? JSON.parse(saved).id : null;
+  }, []);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -89,7 +95,7 @@ export const UserSelect: React.FC<UserSelectProps> = ({
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-black text-slate-800 truncate uppercase tracking-tight leading-none">
-                {selectedUsers[0]?.name || placeholder}
+                {selectedUsers[0]?.id === currentUserId ? 'Tôi' : (selectedUsers[0]?.name || placeholder)}
               </p>
               {selectedUsers[0] && (
                 <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5">{selectedUsers[0].role}</p>
@@ -101,7 +107,7 @@ export const UserSelect: React.FC<UserSelectProps> = ({
             {selectedUsers.length > 0 ? (
               selectedUsers.map(u => (
                 <div key={u.id} className="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-xl flex items-center gap-1.5 border border-indigo-100 animate-in zoom-in-95 group/chip">
-                  <span className="text-[9px] font-black uppercase tracking-tight">{u.name}</span>
+                  <span className="text-[9px] font-black uppercase tracking-tight">{u.id === currentUserId ? 'Tôi' : u.name}</span>
                   <span 
                     onClick={(e) => removeUser(e, u.id)}
                     className="hover:bg-indigo-200 rounded-full w-3 h-3 flex items-center justify-center font-bold text-[10px] transition-colors"
@@ -132,6 +138,7 @@ export const UserSelect: React.FC<UserSelectProps> = ({
             {filteredUsers.length > 0 ? (
               filteredUsers.map(u => {
                 const isSelected = selectedValues.includes(u.id);
+                const isMe = u.id === currentUserId;
                 return (
                   <button 
                     key={u.id}
@@ -153,7 +160,7 @@ export const UserSelect: React.FC<UserSelectProps> = ({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className={`text-[11px] font-black uppercase tracking-tight truncate ${isSelected ? 'text-indigo-700' : 'text-slate-800'}`}>
-                        {u.name}
+                        {isMe ? 'Tôi' : u.name}
                       </p>
                       <p className="text-[9px] text-slate-400 font-bold uppercase leading-none mt-0.5">{u.role}</p>
                     </div>

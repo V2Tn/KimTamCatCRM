@@ -20,6 +20,7 @@ export enum TaskStatus {
   REDO = 'REDO',
   PAUSED = 'PAUSED',
   CANCELLED = 'CANCELLED',
+  // Added CLOSED status to sync with types/index.ts and resolve errors in constants
   CLOSED = 'CLOSED'
 }
 
@@ -31,7 +32,7 @@ export interface Department {
 export interface User {
   id: string;
   name: string;
-  username: string; // Tên đăng nhập hệ thống
+  username: string;
   email: string;
   role: Role;
   departmentId?: string;
@@ -71,8 +72,9 @@ export interface Task {
   attachments?: string[];
   resultContent?: string;
   resultAttachments?: string[];
-  evaluation?: string; // Đánh giá: Xuất sắc, Tốt, Bình thường, Tệ
-  logs?: TaskLog[]; // Nhật ký hoạt động
+  evaluation?: string; 
+  old_evaluation?: string; // Lưu vết đánh giá cũ khi Redo
+  logs?: TaskLog[]; 
 }
 
 export interface AIAnalysisResult {

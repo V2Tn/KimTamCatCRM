@@ -51,116 +51,85 @@ export const MOCK_USERS: User[] = [
   }
 ];
 
+// Tạo ngày trong quá khứ để test Tồn đọng
+const pastDate = new Date();
+pastDate.setDate(pastDate.getDate() - 5);
+const overdueStr = pastDate.toISOString();
+
+// Tạo ngày trong tương lai
+const futureDate = new Date();
+futureDate.setDate(futureDate.getDate() + 5);
+const futureStr = futureDate.toISOString();
+
 export const MOCK_TASKS: Task[] = [
   { 
     id: 't1', 
-    title: 'Xử lý sự cố server database', 
-    description: 'Database bị quá tải khiến ứng dụng phản hồi chậm. Cần tối ưu query ngay.', 
+    title: '⚠️ TEST: Task Tồn đọng (Manager giao cho Staff)', 
+    description: 'Task này đã quá hạn và chưa xong. Sẽ hiện icon cảnh báo và ẩn Quick Actions nếu log bằng Staff.', 
     quadrant: Quadrant.Q1, 
-    status: TaskStatus.IN_PROGRESS, 
+    status: TaskStatus.TODO, 
     assigneeId: '3', 
     creatorId: '2', 
     departmentId: 'dept-1', 
-    createdAt: '2025-01-09T08:00:00Z' 
+    createdAt: overdueStr,
+    endDate: overdueStr 
   },
   { 
     id: 't2', 
-    title: 'Soạn thảo hợp đồng đối tác mới', 
-    description: 'Hợp đồng cung cấp dịch vụ cho đối tác Alpha Corp.', 
+    title: '🎯 TEST: Task Tự giao (Hiện "Tôi" và Quick Actions)', 
+    description: 'Bạn tự giao task này cho mình. Sẽ thấy dòng "Giao bởi: Tôi" và đầy đủ nút hành động.', 
     quadrant: Quadrant.Q1, 
-    status: TaskStatus.TODO, 
+    status: TaskStatus.IN_PROGRESS, 
     assigneeId: '2', 
-    creatorId: '1', 
+    creatorId: '2', 
     departmentId: 'dept-1', 
-    createdAt: '2025-01-09T08:30:00Z' 
+    createdAt: new Date().toISOString(),
+    endDate: futureStr
   },
   { 
     id: 't3', 
-    title: 'Lên kế hoạch đào tạo quý 2', 
-    description: 'Xây dựng giáo trình đào tạo kỹ năng mềm cho nhân sự.', 
+    title: '🔄 TEST: Task Thực hiện lại (Redo)', 
+    description: 'Công việc này bị Manager yêu cầu làm lại.', 
     quadrant: Quadrant.Q2, 
-    status: TaskStatus.PAUSED, 
-    assigneeId: '1', 
-    creatorId: '1', 
-    departmentId: 'dept-3', 
-    createdAt: '2025-01-08T09:00:00Z' 
+    status: TaskStatus.REDO, 
+    assigneeId: '3', 
+    creatorId: '2', 
+    departmentId: 'dept-1', 
+    createdAt: overdueStr
   },
   { 
     id: 't4', 
-    title: 'Cập nhật tài liệu kỹ thuật API', 
-    description: 'Bổ sung các endpoint mới của module thanh toán vào tài liệu Swagger.', 
+    title: '✅ TEST: Task Quá hạn nhưng đã xong', 
+    description: 'Mặc dù endDate đã qua nhưng status là DONE nên không hiện cảnh báo tồn đọng.', 
     quadrant: Quadrant.Q2, 
     status: TaskStatus.DONE, 
     assigneeId: '3', 
     creatorId: '2', 
     departmentId: 'dept-1', 
-    createdAt: '2025-01-07T14:20:00Z' 
+    createdAt: overdueStr,
+    endDate: overdueStr
   },
   { 
     id: 't5', 
-    title: 'Phản hồi email khách hàng cũ', 
-    description: 'Chăm sóc lại các khách hàng đã không tương tác trong 6 tháng.', 
+    title: '⏸️ TEST: Task Tạm dừng', 
+    description: 'Đang đợi phê duyệt từ cấp trên.', 
     quadrant: Quadrant.Q3, 
-    status: TaskStatus.REDO, 
-    assigneeId: '2', 
-    creatorId: '2', 
-    departmentId: 'dept-2', 
-    createdAt: '2025-01-09T10:15:00Z' 
+    status: TaskStatus.PAUSED, 
+    assigneeId: '3', 
+    creatorId: '3', 
+    departmentId: 'dept-1', 
+    createdAt: new Date().toISOString()
   },
   { 
     id: 't6', 
-    title: 'Đặt lịch họp hội đồng quản trị', 
-    description: 'Họp tổng kết kết quả kinh doanh năm 2024.', 
-    quadrant: Quadrant.Q3, 
-    status: TaskStatus.TODO, 
-    assigneeId: '1', 
-    creatorId: '2', 
-    departmentId: 'dept-1', 
-    createdAt: '2025-01-09T11:00:00Z' 
-  },
-  { 
-    id: 't7', 
-    title: 'Kiểm tra hòm thư spam', 
-    description: 'Dọn dẹp hòm thư rác định kỳ mỗi tuần.', 
+    title: '🗑️ TEST: Task Hủy (Q4)', 
+    description: 'Việc này không quan trọng và đã bị hủy.', 
     quadrant: Quadrant.Q4, 
     status: TaskStatus.CANCELLED, 
     assigneeId: '3', 
     creatorId: '3', 
     departmentId: 'dept-1', 
-    createdAt: '2025-01-09T13:00:00Z' 
-  },
-  { 
-    id: 't8', 
-    title: 'Nghiên cứu công nghệ Blockchain', 
-    description: 'Tìm hiểu khả năng ứng dụng vào hệ thống truy xuất nguồn gốc.', 
-    quadrant: Quadrant.Q2, 
-    status: TaskStatus.IN_PROGRESS, 
-    assigneeId: '2', 
-    creatorId: '1', 
-    departmentId: 'dept-1', 
-    createdAt: '2025-01-05T15:45:00Z' 
-  },
-  { 
-    id: 't9', 
-    title: 'Tổng kết chi phí marketing', 
-    description: 'Báo cáo chi tiết ngân sách đã sử dụng cho chiến dịch tết.', 
-    quadrant: Quadrant.Q1, 
-    status: TaskStatus.CLOSED, 
-    assigneeId: '1', 
-    creatorId: '1', 
-    departmentId: 'dept-2', 
-    createdAt: '2025-01-04T08:20:00Z' 
-  },
-  { 
-    id: 't10', 
-    title: 'Chỉnh sửa giao diện Login', 
-    description: 'Fix lỗi tràn viền trên màn hình iPhone 13 mini.', 
-    quadrant: Quadrant.Q1, 
-    status: TaskStatus.REDO, 
-    assigneeId: '3', 
-    creatorId: '2', 
-    departmentId: 'dept-1', 
-    createdAt: '2025-01-09T16:00:00Z' 
+    createdAt: new Date().toISOString()
   }
 ];
 
@@ -178,5 +147,6 @@ export const STATUS_CONFIG: Record<TaskStatus, { title: string; color: string; b
   [TaskStatus.REDO]: { title: 'THỰC HIỆN LẠI', color: 'text-amber-600', bgColor: 'bg-amber-50' },
   [TaskStatus.PAUSED]: { title: 'TẠM DỪNG', color: 'text-orange-600', bgColor: 'bg-orange-50' },
   [TaskStatus.CANCELLED]: { title: 'HỦY', color: 'text-rose-700', bgColor: 'bg-rose-100' },
-  [TaskStatus.CLOSED]: { title: 'ĐÃ ĐÓNG', color: 'text-slate-900', bgColor: 'bg-slate-200' },
+  // Added CLOSED mapping to satisfy exhaustiveness check
+  [TaskStatus.CLOSED]: { title: 'ĐÃ ĐÓNG', color: 'text-slate-900', bgColor: 'bg-slate-200' }
 };

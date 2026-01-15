@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Layout } from './components/Layout';
 import { LoginView } from './components/Auth/LoginView';
 import { TaskCreateModal } from './components/Tasks/TaskCreateModal';
@@ -8,7 +9,7 @@ import { TaskDetailModal } from './components/Tasks/TaskDetailModal';
 import { DashboardView } from './components/Dashboard/DashboardView';
 import { useTasks } from './hooks/useTasks';
 import { useUsers } from './hooks/useUsers';
-import { Task, User } from './types';
+import { Task, User, TaskStatus } from './types';
 
 type TabType = 'Hôm nay' | 'Tuần' | 'Tháng' | 'Năm';
 type ViewMode = 'list' | 'matrix';
@@ -27,7 +28,6 @@ const App: React.FC = () => {
     deleteDepartment
   } = useUsers();
   
-  // Quản lý trạng thái đăng nhập
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
     return localStorage.getItem('is_authenticated') === 'true';
   });
@@ -41,9 +41,10 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('Hôm nay');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<TaskStatus | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  // Hook tasks chỉ hoạt động khi có currentUser
   const taskHook = useTasks(currentUser || users[0], users);
   const { visibleTasks, stats, addTask, updateTask, deleteTask, toggleTaskStatus } = taskHook;
 
@@ -60,6 +61,17 @@ const App: React.FC = () => {
     localStorage.removeItem('is_authenticated');
     localStorage.removeItem('auth_user');
     setCurrentView('dashboard');
+  };
+
+  const handleUpdateTaskWithToast = (id: string, updates: Partial<Task>) => {
+    updateTask(id, updates);
+    setSuccessToast("Cập nhật thành công");
+    setTimeout(() => setSuccessToast(null), 5000);
+  };
+
+  const handleTaskClick = (task: Task, forceStatus?: TaskStatus) => {
+    setSelectedTaskId(task.id);
+    setPendingStatus(forceStatus || null);
   };
 
   if (!isLoggedIn || !currentUser) {
@@ -87,8 +99,8 @@ const App: React.FC = () => {
             setActiveTab={setActiveTab}
             viewMode={viewMode} 
             setViewMode={setViewMode}
-            onTaskClick={(task) => setSelectedTaskId(task.id)} 
-            onToggleTask={toggleTaskStatus}
+            onTaskClick={handleTaskClick} 
+            onUpdateTask={handleUpdateTaskWithToast}
             onDeleteTask={deleteTask} 
             onEditTask={(task) => setSelectedTaskId(task.id)}
             onCreateTaskClick={() => setIsCreateModalOpen(true)}
@@ -129,12 +141,22 @@ const App: React.FC = () => {
           task={selectedTask} 
           users={users} 
           canDelete={checkCanDelete(selectedTask)} 
-          onClose={() => setSelectedTaskId(null)} 
+          onClose={() => { setSelectedTaskId(null); setPendingStatus(null); }} 
           onDelete={deleteTask} 
           onToggle={toggleTaskStatus} 
-          onUpdateTask={updateTask}
+          onUpdateTask={handleUpdateTaskWithToast}
           currentUserId={currentUser.id} 
+          initialStatus={pendingStatus}
         />
+      )}
+
+      {successToast && createPortal(
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[30000] animate-in slide-in-from-bottom-10 duration-500">
+          <div className="bg-[#111827] text-white px-10 py-4 rounded-2xl shadow-2xl border border-white/10 flex items-center justify-center">
+            <span className="text-[11px] font-black uppercase tracking-[0.2em]">{successToast}</span>
+          </div>
+        </div>,
+        document.body
       )}
     </>
   );

@@ -44,15 +44,15 @@ export const useTasks = (currentUser: User, users: User[]) => {
     const todo = statsTasks.filter(t => t.status === TaskStatus.TODO).length;
     const redo = statsTasks.filter(t => t.status === TaskStatus.REDO).length;
     const paused = statsTasks.filter(t => t.status === TaskStatus.PAUSED).length;
-    const closed = statsTasks.filter(t => t.status === TaskStatus.CLOSED).length;
+    const cancelled = statsTasks.filter(t => t.status === TaskStatus.CANCELLED).length;
     return { 
       done, 
       doing, 
       todo, 
       redo, 
-      paused, 
-      closed, 
-      total: done + doing + todo + redo + paused + closed 
+      paused,
+      cancelled,
+      total: done + doing + todo + redo + paused + cancelled
     };
   }, [visibleTasks, currentUser.id]);
 
@@ -85,30 +85,27 @@ export const useTasks = (currentUser: User, users: User[]) => {
         const newLogs = [...(t.logs || [])];
         const isAdminOrManager = currentUser.role === Role.ADMIN || currentUser.role === Role.SUPER_ADMIN || currentUser.role === Role.MANAGER;
         
-        if (updates.assigneeId && updates.assigneeId !== t.assigneeId) {
-          const oldAssigneeName = users.find(u => u.id === t.assigneeId)?.name || 'N/A';
-          const newAssigneeName = users.find(u => u.id === updates.assigneeId)?.name || 'N/A';
+        // Logic REDO (Làm lại): Gán log cho ID người tạo task ban đầu
+        if (updates.status === TaskStatus.REDO && t.status === TaskStatus.DONE) {
+          const valToLog = t.evaluation || "Chưa có";
           newLogs.push(createLogEntry(
-            `${currentUser.name} đã thay đổi người thực hiện ${oldAssigneeName} thành ${newAssigneeName}`, 
-            currentUser.id
+            `Thực hiện lại (Đánh giá cũ: ${valToLog})`, 
+            t.creatorId // Sử dụng ID người tạo ban đầu theo yêu cầu
           ));
+          return { ...t, ...updates, logs: newLogs, evaluation: undefined };
         }
 
         const hasStatusChange = updates.status && updates.status !== t.status;
-        const hasResultChange = updates.resultContent !== undefined && updates.resultContent !== (t.resultContent || '');
-
-        const statusTitle = STATUS_CONFIG[updates.status || t.status].title;
+        const statusTitle = STATUS_CONFIG[updates.status || t.status]?.title || 'KHÔNG XÁC ĐỊNH';
         
-        if (hasResultChange) {
-          const content = updates.resultContent || '';
-          const truncatedContent = content.length > 30 ? content.substring(0, 30) + '...' : content;
+        if (updates.resultContent !== undefined && updates.resultContent !== (t.resultContent || '')) {
           newLogs.push(createLogEntry(
-            `${currentUser.name} cập nhật nội dung: ${truncatedContent} với trạng thái ${statusTitle}`, 
+            `${currentUser.name} báo cáo: ${updates.resultContent.substring(0, 30)}${updates.resultContent.length > 30 ? '...' : ''} (Trạng thái: ${statusTitle})`, 
             currentUser.id
           ));
         } else if (hasStatusChange) {
           newLogs.push(createLogEntry(
-            `${currentUser.name} cập nhật trạng thái ${statusTitle}`, 
+            `${currentUser.name} chuyển trạng thái thành ${statusTitle}`, 
             currentUser.id
           ));
         }
@@ -116,7 +113,7 @@ export const useTasks = (currentUser: User, users: User[]) => {
         const hasEvaluationChange = updates.evaluation !== undefined && updates.evaluation !== t.evaluation;
         if (hasEvaluationChange && isAdminOrManager) {
           newLogs.push(createLogEntry(
-            `${currentUser.name} xác nhận đánh giá: ${updates.evaluation}`, 
+            `${currentUser.name} đã xác nhận đánh giá: ${updates.evaluation}`, 
             currentUser.id
           ));
         }

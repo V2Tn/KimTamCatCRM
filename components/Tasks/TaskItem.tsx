@@ -1,119 +1,222 @@
 
 import React from 'react';
 import { Task, TaskStatus, User } from '../../types';
-import { QUADRANT_CONFIG, STATUS_CONFIG } from '../../constants';
+import { STATUS_CONFIG } from '../../constants';
+
+// Hệ thống SVG Icons chuyên nghiệp
+const Icons = {
+  Edit: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+  ),
+  Delete: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+  ),
+  Clock: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+  ),
+  Check: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><polyline points="20 6 9 17 4 12"/></svg>
+  ),
+  Close: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  ),
+  Pause: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+  ),
+  Play: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+  ),
+  Redo: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+  ),
+  Alert: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  )
+};
 
 interface TaskItemProps {
   task: Task;
   canDelete: boolean;
-  onToggle: (id: string) => void;
+  onUpdateStatus: (id: string, status: TaskStatus, additionalUpdates?: Partial<Task>) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
   onClick?: () => void;
-  isFollowedOnly?: boolean;
   currentUserId: string;
   users: User[];
 }
 
-export const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onClick, onEdit, onDelete, isFollowedOnly, currentUserId, users }) => {
-  const isFinished = task.status === TaskStatus.DONE || task.status === TaskStatus.CLOSED;
+export const TaskItem: React.FC<TaskItemProps> = ({ 
+  task, onUpdateStatus, onClick, onEdit, onDelete, users, currentUserId 
+}) => {
+  const isFinished = task.status === TaskStatus.DONE;
   const statusConfig = STATUS_CONFIG[task.status];
-  const quadrantConfig = QUADRANT_CONFIG[task.quadrant];
+  const creatorUser = users.find(u => u.id === task.creatorId);
+  const lastLog = task.logs && task.logs.length > 0 ? task.logs[task.logs.length - 1] : null;
 
-  const formatDate = (dateStr: string) => {
+  // Logic: Kiểm tra tồn đọng (Quá hạn & Chưa hoàn thành)
+  const isOverdue = React.useMemo(() => {
+    if (!task.endDate || isFinished || task.status === TaskStatus.CANCELLED) return false;
+    return new Date(task.endDate) < new Date();
+  }, [task.endDate, isFinished, task.status]);
+
+  // Logic hiển thị Quick Actions: 
+  const isRelated = currentUserId === task.creatorId || currentUserId === task.assigneeId;
+  const showQuickActions = isRelated && (
+    (task.assigneeId === task.creatorId) || 
+    isOverdue || 
+    task.status === TaskStatus.TODO || 
+    task.status === TaskStatus.REDO ||
+    task.status === TaskStatus.IN_PROGRESS ||
+    task.status === TaskStatus.PAUSED ||
+    (task.status === TaskStatus.DONE && task.evaluation === "Tệ") ||
+    task.status === TaskStatus.CANCELLED
+  );
+
+  const creatorDisplayName = task.creatorId === currentUserId ? 'Tôi' : (creatorUser?.name || '---');
+
+  const formatShortDate = (dateStr?: string) => {
+    if (!dateStr) return '---';
     const d = new Date(dateStr);
-    return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()}`;
+    const hh = d.getHours().toString().padStart(2, '0');
+    const mm = d.getMinutes().toString().padStart(2, '0');
+    const dd = d.getDate().toString().padStart(2, '0');
+    const mo = (d.getMonth() + 1).toString().padStart(2, '0');
+    return `${hh}:${mm} ${dd}/${mo}`;
   };
 
-  const creatorUser = users.find(u => u.id === task.creatorId);
-  const assigneeUser = users.find(u => u.id === task.assigneeId);
+  const handleQuickAction = (e: React.MouseEvent, status: TaskStatus) => {
+    e.stopPropagation();
+    onUpdateStatus(task.id, status);
+  };
 
   return (
     <div 
       onClick={onClick}
-      className={`group relative bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-100 transition-all duration-300 cursor-pointer flex flex-col gap-3 active:scale-[0.98] ${isFinished ? 'bg-slate-50/50 opacity-80' : ''}`}
+      className={`group relative bg-white p-6 rounded-[2.8rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:border-indigo-100 transition-all duration-500 cursor-pointer grid grid-cols-[1fr_auto] gap-6 active:scale-[0.99] ${isFinished ? 'bg-slate-50/50' : ''}`}
     >
-      {/* 1. Header: Tiêu đề + Badge Trạng thái */}
-      <div className="flex justify-between items-start gap-3">
-        <h4 className={`text-[15px] font-black text-slate-800 leading-tight flex-1 transition-all ${isFinished ? 'line-through text-slate-300' : ''}`}>
+      {/* CỘT TRÁI: THÔNG TIN */}
+      <div className="flex flex-col gap-4 min-w-0">
+        <h4 className={`text-[16px] font-black text-slate-800 leading-tight transition-all break-words ${isFinished ? 'line-through text-slate-300 italic' : ''}`}>
           {task.title}
         </h4>
-        <div className={`shrink-0 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider border transition-colors ${statusConfig.bgColor} ${statusConfig.color} border-current/10`}>
-          {statusConfig.title}
-        </div>
-      </div>
 
-      {/* 2. Body: Mô tả ngắn */}
-      {task.description && (
-        <p className="text-[11px] text-slate-400 line-clamp-2 font-medium leading-relaxed italic pr-2">
-          {task.description}
-        </p>
-      )}
-
-      {/* 3. Footer: Avatar Circles lồng nhau + Ngày tạo */}
-      <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-50">
-        <div className="flex items-center">
-          <div className="flex -space-x-3">
-            {/* Người thực hiện (Assignee) */}
-            <div 
-              title={`Người thực hiện: ${assigneeUser?.name || 'Chưa rõ'}`} 
-              className="w-8 h-8 rounded-full border-2 border-white bg-indigo-600 flex items-center justify-center text-[10px] font-black text-white shadow-sm overflow-hidden z-20 transition-transform group-hover:translate-x-1"
-            >
-              {assigneeUser?.image_avatar ? (
-                <img src={assigneeUser.image_avatar} className="w-full h-full object-cover" />
-              ) : (
-                assigneeUser?.name.charAt(0) || 'A'
-              )}
-            </div>
-            {/* Người giao (Creator) */}
-            <div 
-              title={`Người giao: ${creatorUser?.name || 'Hệ thống'}`} 
-              className="w-8 h-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[10px] font-black text-slate-500 shadow-sm overflow-hidden z-10 transition-transform group-hover:-translate-x-1"
-            >
-              {creatorUser?.image_avatar ? (
-                <img src={creatorUser.image_avatar} className="w-full h-full object-cover" />
-              ) : (
-                creatorUser?.name.charAt(0) || 'C'
-              )}
-            </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider border whitespace-nowrap ${statusConfig?.bgColor || 'bg-slate-50'} ${statusConfig?.color || 'text-slate-500'} border-current/10`}>
+            {statusConfig?.title || 'KHÔNG XÁC ĐỊNH'}
+          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter shrink-0">Giao bởi:</span>
+            <span className={`text-[10px] font-black uppercase truncate ${task.creatorId === currentUserId ? 'text-indigo-600' : 'text-slate-700'}`}>
+              {creatorDisplayName}
+            </span>
           </div>
-          {isFollowedOnly && (
-            <span className="ml-5 text-[8px] font-black text-amber-500 uppercase tracking-widest bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100">👁️ THEO DÕI</span>
+        </div>
+
+        <div className="space-y-1.5 pt-1 border-t border-slate-50">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
+            Tạo: <span className="text-slate-600 font-bold">{formatShortDate(task.createdAt)}</span>
+          </p>
+          <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)]"></span>
+            Cập nhật: <span className="font-bold">{formatShortDate(lastLog ? lastLog.timestamp : task.createdAt)}</span>
+          </p>
+          
+          {isOverdue && (
+            <div className="flex items-center gap-2 text-rose-600 mt-1 animate-pulse">
+              <Icons.Alert />
+              <span className="text-[10px] font-black uppercase tracking-[0.15em]">Tồn đọng</span>
+            </div>
           )}
         </div>
+      </div>
 
-        {/* Ngày tạo + Icon đồng hồ */}
-        <div className="flex items-center gap-1.5 text-slate-400">
-          <svg className="w-3.5 h-3.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-[10px] font-black tracking-tight">{formatDate(task.createdAt)}</span>
+      {/* CỘT PHẢI: BỘ NÚT HÀNH ĐỘNG */}
+      <div className="flex flex-col justify-between items-end shrink-0 py-1">
+        <div className="flex gap-2">
+          <button 
+            title="Chỉnh sửa"
+            onClick={(e) => { e.stopPropagation(); onEdit(task); }} 
+            className="w-9 h-9 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-white hover:border-indigo-100 hover:shadow-xl transition-all active:scale-90"
+          >
+            <Icons.Edit />
+          </button>
+          <button 
+            title="Xóa công việc"
+            onClick={(e) => { e.stopPropagation(); onDelete(task.id); }} 
+            className="w-9 h-9 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-white hover:border-red-100 hover:shadow-xl transition-all active:scale-90"
+          >
+            <Icons.Delete />
+          </button>
         </div>
-      </div>
 
-      {/* Nút hành động (Icon only) - Chỉ hiện khi hover */}
-      <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0 scale-90 group-hover:scale-100">
-         <button 
-          onClick={(e) => { e.stopPropagation(); onEdit(task); }}
-          className="p-1.5 rounded-lg bg-white shadow-lg border border-slate-100 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
-        </button>
-        <button 
-          onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
-          className="p-1.5 rounded-lg bg-white shadow-lg border border-slate-100 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
-      </div>
+        {showQuickActions && (
+          <div className="flex gap-2">
+            {/* Nhóm trạng thái chưa xong (TODO, IN_PROGRESS, PAUSED, REDO) */}
+            {(task.status === TaskStatus.TODO || task.status === TaskStatus.IN_PROGRESS || task.status === TaskStatus.PAUSED || task.status === TaskStatus.REDO) ? (
+              <>
+                {(task.status === TaskStatus.TODO || task.status === TaskStatus.REDO) && (
+                  <button 
+                    title="Bắt đầu"
+                    onClick={(e) => handleQuickAction(e, TaskStatus.IN_PROGRESS)} 
+                    className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-lg shadow-blue-100 border border-blue-100 active:scale-90"
+                  >
+                    <Icons.Clock />
+                  </button>
+                )}
+                {task.status === TaskStatus.IN_PROGRESS && (
+                  <button 
+                    title="Tạm dừng"
+                    onClick={(e) => handleQuickAction(e, TaskStatus.PAUSED)} 
+                    className="w-9 h-9 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center hover:bg-amber-500 hover:text-white transition-all shadow-lg shadow-amber-100 border border-amber-100 active:scale-90"
+                  >
+                    <Icons.Pause />
+                  </button>
+                )}
+                {task.status === TaskStatus.PAUSED && (
+                  <button 
+                    title="Tiếp tục"
+                    onClick={(e) => handleQuickAction(e, TaskStatus.IN_PROGRESS)} 
+                    className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-lg shadow-blue-100 border border-blue-100 active:scale-90"
+                  >
+                    <Icons.Play />
+                  </button>
+                )}
+                
+                {/* ẨN NÚT HOÀN THÀNH KHI TRẠNG THÁI LÀ TẠM DỪNG (PAUSED) */}
+                {task.status !== TaskStatus.PAUSED && (
+                  <button 
+                    title="Hoàn thành"
+                    onClick={(e) => handleQuickAction(e, TaskStatus.DONE)} 
+                    className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all shadow-lg shadow-emerald-100 border border-emerald-100 active:scale-90"
+                  >
+                    <Icons.Check />
+                  </button>
+                )}
 
-      {/* Quadrant Tag Overlay */}
-      <div className={`absolute -top-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest ${quadrantConfig.tagBg} ${quadrantConfig.tagText} border ${quadrantConfig.borderColor} opacity-0 group-hover:opacity-100 transition-all shadow-sm`}>
-        {quadrantConfig.title}
+                <button 
+                  title="Hủy"
+                  onClick={(e) => handleQuickAction(e, TaskStatus.CANCELLED)} 
+                  className="w-9 h-9 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all shadow-lg shadow-rose-100 border border-rose-100 active:scale-90"
+                >
+                  <Icons.Close />
+                </button>
+              </>
+            ) : (
+              /* Nhóm trạng thái DONE, CANCELLED */
+              ((task.status === TaskStatus.DONE && task.evaluation === "Tệ") || 
+               task.status === TaskStatus.CANCELLED) && (
+                <button 
+                  title="Thực hiện lại"
+                  onClick={(e) => handleQuickAction(e, TaskStatus.REDO)} 
+                  className="w-9 h-9 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-lg shadow-indigo-100 border border-indigo-100 active:scale-90"
+                >
+                  <Icons.Redo />
+                </button>
+              )
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

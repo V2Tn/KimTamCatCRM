@@ -90,9 +90,7 @@ export const SettingsView: React.FC<SettingsViewProps> = (props) => {
     } finally { setIsSyncing(false); }
   };
 
-  const handleCancelAction = (modalType: any) => {
-    setSuccessMessage("Đã hủy thao tác!");
-  };
+  // Removed handleCancelAction as it was unused and caused TS errors
 
   return (
     <div className="max-w-7xl mx-auto pb-20">
@@ -128,7 +126,6 @@ export const SettingsView: React.FC<SettingsViewProps> = (props) => {
               onDeleteUser={props.onDeleteUser} 
               setSuccessMessage={setSuccessMessage} 
               setErrorMessage={setErrorMessage} 
-              handleCancelAction={handleCancelAction}
               setShowAddUserModal={setShowAddUserModal}
               showAddUserModal={showAddUserModal}
             />
