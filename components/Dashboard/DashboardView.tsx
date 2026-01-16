@@ -90,6 +90,134 @@ const ProgressRing: React.FC<{ percentage: number; radius?: number; strokeWidth?
   );
 };
 
+const TaskLogAccordion: React.FC<{ 
+  tasks: Task[]; 
+  onTaskClick: (t: Task) => void;
+  onUpdateTask: (id: string, updates: Partial<Task>) => void;
+}> = ({ tasks, onTaskClick, onUpdateTask }) => {
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+
+  const groupedTasks = useMemo(() => {
+    const groups: Record<string, Task[]> = {};
+    const sortedTasks = [...tasks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    sortedTasks.forEach(task => {
+      const date = new Date(task.createdAt);
+      const dayNames = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+      const dateStr = `${dayNames[date.getDay()]}, ${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+      if (!groups[dateStr]) groups[dateStr] = [];
+      groups[dateStr].push(task);
+    });
+    return groups;
+  }, [tasks]);
+
+  const toggleGroup = (date: string) => {
+    const next = new Set(openGroups);
+    if (next.has(date)) next.delete(date);
+    else next.add(date);
+    setOpenGroups(next);
+  };
+
+  return (
+    <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm animate-in fade-in duration-500">
+      <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
+        <div className="flex items-center gap-3">
+          <span className="text-indigo-600 text-xl font-black italic">≡</span>
+          <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Nhật ký công việc</h3>
+        </div>
+        <button className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-100 transition-all">
+          Đã hoàn thành
+        </button>
+      </div>
+
+      <div className="divide-y divide-slate-50">
+        {Object.entries(groupedTasks).map(([date, groupTasks], idx) => {
+          const isOpen = idx === 0 || openGroups.has(date);
+          return (
+            <div key={date} className="overflow-hidden">
+              <button 
+                onClick={() => toggleGroup(date)}
+                className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-all text-left group"
+              >
+                <div className="flex items-center gap-4">
+                  <span className={`transition-transform duration-300 ${isOpen ? 'rotate-0' : '-rotate-90'}`}>
+                    <svg className="w-4 h-4 text-indigo-400 group-hover:text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </span>
+                  <span className="text-[13px] font-black text-slate-700 tracking-tight">{date}</span>
+                </div>
+                <div className="flex items-center gap-4">
+                   {!isOpen && <span className="text-[10px] text-slate-300 font-bold italic uppercase tracking-widest">Bấm để xem chi tiết</span>}
+                   <span className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[10px] font-black">{groupTasks.length}</span>
+                </div>
+              </button>
+
+              {isOpen && (
+                <div className="bg-white divide-y divide-slate-50 animate-in slide-in-from-top-2 duration-300">
+                  {groupTasks.map(task => {
+                    const statusCfg = STATUS_CONFIG[task.status];
+                    const quadCfg = QUADRANT_CONFIG[task.quadrant];
+                    const isCompleted = task.status === TaskStatus.DONE;
+                    const isCancelled = task.status === TaskStatus.CANCELLED;
+                    const dateObj = new Date(task.createdAt);
+                    const timeStr = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')} ${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}`;
+
+                    return (
+                      <div 
+                        key={task.id} 
+                        onClick={() => onTaskClick(task)}
+                        className="flex items-center gap-4 p-5 pl-14 hover:bg-slate-50 transition-all cursor-pointer group/row"
+                      >
+                        <div className="shrink-0">
+                          {isCancelled ? (
+                            <span className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-slate-200 text-slate-300 text-[10px] font-black">✕</span>
+                          ) : isCompleted ? (
+                            <span className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-emerald-500 text-emerald-500 text-[10px] font-black">✓</span>
+                          ) : (
+                            <span className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-indigo-200 text-indigo-300"></span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-[13px] font-bold text-slate-700 mb-1.5 truncate ${isCancelled || isCompleted ? 'line-through text-slate-300 italic' : ''}`}>
+                            {task.title}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${statusCfg.bgColor} ${statusCfg.color} border border-current/10`}>
+                              {statusCfg.title}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${quadCfg.tagBg} ${quadCfg.tagText}`}>
+                              {quadCfg.title}
+                            </span>
+                            <div className="flex items-center gap-1.5 text-slate-300 ml-2">
+                              <span className="text-[10px]">🕒</span>
+                              <span className="text-[9px] font-bold">{timeStr}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="shrink-0 opacity-0 group-hover/row:opacity-100 transition-all">
+                          {(isCancelled || isCompleted) && (
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); onUpdateTask(task.id, { status: TaskStatus.REDO }); }}
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-white hover:shadow-sm transition-all"
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export const DashboardView: React.FC<DashboardViewProps> = ({
   currentUser,
   users,
@@ -106,7 +234,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   checkCanDelete,
   stats
 }) => {
-  const percentage = stats.total === 0 ? 0 : Math.round((stats.done / stats.total) * 100);
+  const isSameDay = (d1: Date, d2: Date) => {
+    return d1.getDate() === d2.getDate() && 
+           d1.getMonth() === d2.getMonth() && 
+           d1.getFullYear() === d2.getFullYear();
+  };
+
+  // Tính toán stats cho riêng ngày hôm nay
+  const todayStats = useMemo(() => {
+    const today = new Date();
+    const todayTasks = visibleTasks.filter(t => isSameDay(new Date(t.createdAt), today));
+    
+    const done = todayTasks.filter(t => t.status === TaskStatus.DONE).length;
+    const total = todayTasks.length;
+    
+    return {
+      done,
+      doing: todayTasks.filter(t => t.status === TaskStatus.IN_PROGRESS).length,
+      todo: todayTasks.filter(t => t.status === TaskStatus.TODO).length,
+      redo: todayTasks.filter(t => t.status === TaskStatus.REDO).length,
+      paused: todayTasks.filter(t => t.status === TaskStatus.PAUSED).length,
+      cancelled: todayTasks.filter(t => t.status === TaskStatus.CANCELLED).length,
+      total,
+      percentage: total === 0 ? 0 : Math.round((done / total) * 100)
+    };
+  }, [visibleTasks]);
+
+  const percentage = activeTab === 'Hôm nay' ? todayStats.percentage : (stats.total === 0 ? 0 : Math.round((stats.done / stats.total) * 100));
   const [expandedQuadrants, setExpandedQuadrants] = useState<Set<Quadrant>>(new Set());
 
   const toggleQuadrant = (q: Quadrant) => {
@@ -127,44 +281,66 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     onUpdateTask(id, { status, ...additionalUpdates });
   };
 
-  // Mock data for charts based on period
+  // Logic biểu đồ tiến độ: Hiển thị Done trên nền Xám (Total)
   const chartData = useMemo(() => {
+    const data = [];
+    const now = new Date();
+    
     if (activeTab === 'Tuần') {
-      return [
-        { name: '06/01', done: 3, total: 4 },
-        { name: '07/01', done: 0, total: 0 },
-        { name: '08/01', done: 0, total: 0 },
-        { name: '09/01', done: 0, total: 0 },
-        { name: '10/01', done: 0, total: 0 },
-        { name: '11/01', done: 0, total: 0 },
-        { name: '12/01', done: 0, total: 0 },
-        { name: '13/01', done: 0, total: 0 },
-        { name: '14/01', done: 0, total: 0 },
-        { name: '15/01', done: 1, total: 9 },
-      ];
+      for (let i = 9; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const dStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+        const dayTasks = visibleTasks.filter(t => isSameDay(new Date(t.createdAt), d));
+        const doneCount = dayTasks.filter(t => t.status === TaskStatus.DONE).length;
+        data.push({
+          name: dStr,
+          done: doneCount,
+          remaining: dayTasks.length - doneCount, // Phần chưa hoàn thành
+          total: dayTasks.length
+        });
+      }
+    } else if (activeTab === 'Tháng') {
+      for (let i = 3; i >= 0; i--) {
+        const weekName = `Tuần ${4-i}`;
+        const start = new Date();
+        start.setDate(now.getDate() - (i + 1) * 7);
+        const end = new Date();
+        end.setDate(now.getDate() - i * 7);
+        const weekTasks = visibleTasks.filter(t => {
+          const createdAt = new Date(t.createdAt);
+          return createdAt >= start && createdAt <= end;
+        });
+        const doneCount = weekTasks.filter(t => t.status === TaskStatus.DONE).length;
+        data.push({
+          name: weekName,
+          done: doneCount,
+          remaining: weekTasks.length - doneCount,
+          total: weekTasks.length
+        });
+      }
+    } else if (activeTab === 'Năm') {
+      for (let i = 0; i < 4; i++) {
+        const mName = `T${i + 1}`;
+        const mTasks = visibleTasks.filter(t => {
+          const createdAt = new Date(t.createdAt);
+          return createdAt.getMonth() === i && createdAt.getFullYear() === now.getFullYear();
+        });
+        const doneCount = mTasks.filter(t => t.status === TaskStatus.DONE).length;
+        data.push({
+          name: mName,
+          done: doneCount,
+          remaining: mTasks.length - doneCount,
+          total: mTasks.length
+        });
+      }
     }
-    if (activeTab === 'Tháng') {
-      return [
-        { name: 'Tuần 1', done: 5, total: 12 },
-        { name: 'Tuần 2', done: 8, total: 15 },
-        { name: 'Tuần 3', done: 3, total: 20 },
-        { name: 'Tuần 4', done: 12, total: 14 },
-      ];
-    }
-    if (activeTab === 'Năm') {
-      return [
-        { name: 'T1', done: 40, total: 50 },
-        { name: 'T2', done: 30, total: 45 },
-        { name: 'T3', done: 55, total: 60 },
-        { name: 'T4', done: 20, total: 30 },
-      ];
-    }
-    return [];
-  }, [activeTab]);
+    return data;
+  }, [activeTab, visibleTasks]);
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-20">
-      {/* Top Navigation Bar - Pill Shape */}
+      {/* Top Navigation Bar */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-2.5 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/50">
         <div className="flex bg-slate-50/80 p-1 rounded-full w-full md:w-auto">
           {(['Hôm nay', 'Tuần', 'Tháng', 'Năm'] as TabType[]).map(tab => (
@@ -201,163 +377,60 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Stats Section - ONLY visible on "Hôm nay" tab */}
+      {/* Today Section */}
       {activeTab === 'Hôm nay' && (
-        <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-4 px-6">
             <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Tiến độ hôm nay</h3>
             <div className="h-[1px] bg-slate-100 flex-1"></div>
           </div>
 
           <div className="bg-white rounded-[3rem] p-6 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-100 flex flex-col lg:flex-row items-center gap-8 lg:gap-16">
-            {/* Progress Section */}
             <div className="shrink-0 flex flex-col items-center gap-2">
-              <ProgressRing percentage={percentage} />
+              <ProgressRing percentage={todayStats.percentage} />
               <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Tỉ lệ hoàn thành</p>
             </div>
-
-            {/* Vertical Divider for desktop */}
             <div className="hidden lg:block w-[1px] h-32 bg-slate-100/80"></div>
-
-            {/* Status Grid Section */}
             <div className="flex-1 w-full">
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
-                <div className="p-4 bg-emerald-50/50 rounded-3xl border border-emerald-100/40 hover:bg-emerald-50 transition-all cursor-default text-center">
+                <div className="p-4 bg-emerald-50/50 rounded-3xl border border-emerald-100/40 text-center">
                   <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1">Hoàn thành</p>
-                  <p className="text-2xl font-black text-slate-800 tracking-tighter">{stats.done}</p>
+                  <p className="text-2xl font-black text-slate-800 tracking-tighter">{todayStats.done}</p>
                 </div>
-                <div className="p-4 bg-blue-50/50 rounded-3xl border border-blue-100/40 hover:bg-blue-50 transition-all cursor-default text-center">
+                <div className="p-4 bg-blue-50/50 rounded-3xl border border-blue-100/40 text-center">
                   <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest mb-1">Đang thực hiện</p>
-                  <p className="text-2xl font-black text-slate-800 tracking-tighter">{stats.doing}</p>
+                  <p className="text-2xl font-black text-slate-800 tracking-tighter">{todayStats.doing}</p>
                 </div>
-                <div className="p-4 bg-amber-50/50 rounded-3xl border border-amber-100/40 hover:bg-amber-50 transition-all cursor-default text-center">
+                <div className="p-4 bg-amber-50/50 rounded-3xl border border-amber-100/40 text-center">
                   <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1">Thực hiện lại</p>
-                  <p className="text-2xl font-black text-slate-800 tracking-tighter">{stats.redo}</p>
+                  <p className="text-2xl font-black text-slate-800 tracking-tighter">{todayStats.redo}</p>
                 </div>
-                <div className="p-4 bg-orange-50/50 rounded-3xl border border-orange-100/40 hover:bg-orange-50 transition-all cursor-default text-center">
+                <div className="p-4 bg-orange-50/50 rounded-3xl border border-orange-100/40 text-center">
                   <p className="text-[8px] font-black text-orange-400 uppercase tracking-widest mb-1">Tạm dừng</p>
-                  <p className="text-2xl font-black text-slate-800 tracking-tighter">{stats.paused}</p>
+                  <p className="text-2xl font-black text-slate-800 tracking-tighter">{todayStats.paused}</p>
                 </div>
-                <div className="p-4 bg-rose-50/80 rounded-3xl border border-rose-100/40 hover:bg-rose-100 transition-all cursor-default text-center">
+                <div className="p-4 bg-rose-50/80 rounded-3xl border border-rose-100/40 text-center">
                   <p className="text-[8px] font-black text-rose-500 uppercase tracking-widest mb-1">Hủy</p>
-                  <p className="text-2xl font-black text-slate-800 tracking-tighter">{stats.cancelled}</p>
+                  <p className="text-2xl font-black text-slate-800 tracking-tighter">{todayStats.cancelled}</p>
                 </div>
-                <div className="p-4 bg-indigo-50/40 rounded-3xl border border-indigo-100/30 hover:bg-indigo-50 transition-all cursor-default text-center md:col-span-1 lg:col-span-3 xl:col-span-1">
+                <div className="p-4 bg-indigo-50/40 rounded-3xl border border-indigo-100/30 text-center md:col-span-1 lg:col-span-3 xl:col-span-1">
                   <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1">Chưa thực hiện</p>
-                  <p className="text-2xl font-black text-slate-800 tracking-tighter">{stats.todo}</p>
+                  <p className="text-2xl font-black text-slate-800 tracking-tighter">{todayStats.todo}</p>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Periodic Summary Section - Visible on Weekly, Monthly, Yearly */}
-      {activeTab !== 'Hôm nay' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* Summary Banner (Purple Card) */}
-          <div className="bg-gradient-to-r from-indigo-600 to-indigo-800 rounded-[2.5rem] p-8 md:p-10 text-white shadow-2xl relative overflow-hidden group">
-            <div className="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 group-hover:scale-110 transition-transform"></div>
-            <div className="absolute right-10 top-1/2 -translate-y-1/2 opacity-10">
-               <svg viewBox="0 0 24 24" fill="currentColor" className="w-48 h-48"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-            </div>
-            
-            <div className="relative z-10 space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🏆</span>
-                <h4 className="text-[11px] font-black uppercase tracking-[0.2em] opacity-80">Hoàn thành {activeTab.toLowerCase()} này</h4>
-              </div>
-              <div>
-                <span className="text-7xl font-black tracking-tighter leading-none">{stats.done}</span>
-                <span className="text-lg font-bold ml-4 uppercase tracking-widest opacity-70">Công việc</span>
-              </div>
-              <div className="pt-2">
-                <span className="px-4 py-2 bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest backdrop-blur-md border border-white/10">
-                  {activeTab === 'Tuần' ? '12/01 - 18/01' : activeTab === 'Tháng' ? 'Tháng 01/2026' : 'Năm 2026'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Progress Chart Container */}
-          <div className="bg-white rounded-[3rem] p-8 md:p-10 shadow-sm border border-slate-100 space-y-6">
-            <div className="flex items-center justify-between px-2">
-              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Biểu đồ tiến độ <span className="text-slate-300 font-medium lowercase">({activeTab === 'Tuần' ? '10 ngày gần nhất' : activeTab === 'Tháng' ? 'Các tuần trong tháng' : 'Các tháng trong năm'})</span></h3>
-            </div>
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }} barGap={0}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                  <XAxis 
-                    dataKey="name" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 700 }} 
-                    dy={10}
-                  />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 700 }}
-                  />
-                  <Tooltip 
-                    cursor={{ fill: '#F8FAFC' }}
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="bg-slate-900 text-white p-3 rounded-xl shadow-2xl border border-slate-800 animate-in zoom-in-95">
-                            <p className="text-[10px] font-black uppercase mb-1">{payload[0].payload.name}</p>
-                            <p className="text-[9px] font-bold text-emerald-400 uppercase">Hoàn thành: {payload[0].value}</p>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase">Tổng cộng: {payload[0].payload.total}</p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  {/* Background Bar (Total) */}
-                  <Bar dataKey="total" fill="#F1F5F9" radius={[6, 6, 0, 0]} barSize={32} />
-                  {/* Progress Bar (Done) */}
-                  <Bar dataKey="done" radius={[6, 6, 0, 0]} barSize={32}>
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill="#4F46E5" />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Task List Header Decor */}
-      {visibleTasks.length > 0 && (
-        <div className="flex items-center gap-4 px-6 pt-4">
-          <div className="flex items-center gap-3">
-            <span className="text-indigo-600">📊</span>
-            <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">Nhật ký công việc</h3>
-          </div>
-          <div className="h-[1px] bg-slate-100 flex-1"></div>
-        </div>
-      )}
-
-      {/* Task List Section */}
-      {visibleTasks.length === 0 ? (
-        <EmptyState />
-      ) : activeTab === 'Hôm nay' ? (
-        <>
           {viewMode === 'list' ? (
-            <div className="space-y-12 mt-4">
+            <div className="space-y-12">
               {(Object.keys(QUADRANT_CONFIG) as Quadrant[]).map(q => {
-                const qTasks = visibleTasks.filter(t => t.quadrant === q);
+                const qTasks = visibleTasks.filter(t => t.quadrant === q && isSameDay(new Date(t.createdAt), new Date()));
                 if (qTasks.length === 0) return null;
-                
                 const isExpanded = expandedQuadrants.has(q);
                 const displayTasks = isExpanded ? qTasks : qTasks.slice(0, 4);
 
                 return (
                   <div key={q} className="space-y-6">
-                    {/* Section Header with Line Decoration */}
                     <div className="flex items-center gap-4 px-4">
                       <div className="flex items-center gap-3">
                         <div className={`w-1.5 h-6 rounded-full ${q === Quadrant.Q1 ? 'bg-red-500' : q === Quadrant.Q2 ? 'bg-blue-500' : q === Quadrant.Q3 ? 'bg-amber-500' : 'bg-slate-400'}`}></div>
@@ -368,7 +441,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       </div>
                       <div className="h-[1px] bg-slate-100 flex-1"></div>
                     </div>
-                    
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-2">
                       {displayTasks.map(task => (
                         <TaskItem 
@@ -384,48 +456,73 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         />
                       ))}
                     </div>
-
-                    {qTasks.length > 4 && (
-                      <div className="flex justify-center pt-2">
-                        <button 
-                          onClick={() => toggleQuadrant(q)}
-                          className="px-6 py-2 rounded-full bg-white border border-slate-100 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm"
-                        >
-                          {isExpanded ? 'Thu gọn' : `Xem thêm ${qTasks.length - 4} việc`}
-                        </button>
-                      </div>
-                    )}
                   </div>
                 );
               })}
             </div>
           ) : (
             <EisenhowerMatrix 
-              tasks={visibleTasks} 
+              tasks={visibleTasks.filter(t => isSameDay(new Date(t.createdAt), new Date()))} 
               onTaskClick={onTaskClick} 
-              onAddTask={(q) => onCreateTaskClick()} 
+              onAddTask={onCreateTaskClick} 
               currentUserId={currentUser.id} 
             />
           )}
-        </>
-      ) : (
-        /* Period View (Week/Month/Year) - Just list tasks for simplicity but with period headers */
-        <div className="space-y-6 mt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-2">
-            {visibleTasks.map(task => (
-              <TaskItem 
-                key={task.id} 
-                task={task} 
-                canDelete={checkCanDelete(task)}
-                onUpdateStatus={handleUpdateStatus}
-                onEdit={onEditTask}
-                onDelete={onDeleteTask}
-                onClick={() => onTaskClick(task)}
-                currentUserId={currentUser.id}
-                users={users}
-              />
-            ))}
+        </div>
+      )}
+
+      {/* Non-Today Periodic Section */}
+      {activeTab !== 'Hôm nay' && (
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="bg-gradient-to-r from-indigo-600 to-indigo-800 rounded-[2.5rem] p-8 md:p-10 text-white shadow-2xl relative overflow-hidden group">
+            <div className="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20"></div>
+            <div className="relative z-10 space-y-4">
+              <h4 className="text-[11px] font-black uppercase tracking-[0.2em] opacity-80">Hoàn thành {activeTab.toLowerCase()} này</h4>
+              <div>
+                <span className="text-7xl font-black tracking-tighter leading-none">{stats.done}</span>
+                <span className="text-lg font-bold ml-4 uppercase tracking-widest opacity-70">Công việc</span>
+              </div>
+            </div>
           </div>
+
+          <div className="bg-white rounded-[3rem] p-8 md:p-10 shadow-sm border border-slate-100 space-y-6">
+            <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Biểu đồ tiến độ</h3>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 700 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 700 }} />
+                  <Tooltip 
+                    cursor={{ fill: '#F8FAFC' }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="bg-slate-900 text-white p-3 rounded-xl shadow-2xl border border-slate-800">
+                            <p className="text-[10px] font-black uppercase mb-1">{data.name}</p>
+                            <p className="text-[9px] font-bold text-emerald-400 uppercase">Hoàn thành: {data.done}</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase">Còn lại: {data.remaining}</p>
+                            <div className="h-[1px] bg-slate-700 my-1"></div>
+                            <p className="text-[9px] font-black text-indigo-300 uppercase">Tổng cộng: {data.total}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="done" stackId="a" fill="#4F46E5" radius={[0, 0, 0, 0]} barSize={32} />
+                  <Bar dataKey="remaining" stackId="a" fill="#F1F5F9" radius={[6, 6, 0, 0]} barSize={32} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <TaskLogAccordion 
+            tasks={visibleTasks} 
+            onTaskClick={onTaskClick} 
+            onUpdateTask={onUpdateTask}
+          />
         </div>
       )}
     </div>

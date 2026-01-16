@@ -81,7 +81,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     const mm = d.getMinutes().toString().padStart(2, '0');
     const dd = d.getDate().toString().padStart(2, '0');
     const mo = (d.getMonth() + 1).toString().padStart(2, '0');
-    return `${hh}:${mm} ${dd}/${mo}`;
+    const yr = d.getFullYear();
+    return `${hh}:${mm} ${dd}/${mo}/${yr}`;
   };
 
   const handleQuickAction = (e: React.MouseEvent, status: TaskStatus) => {
@@ -113,19 +114,19 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         </div>
 
         <div className="space-y-1.5 pt-1 border-t border-slate-50">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
-            Tạo: <span className="text-slate-600 font-bold">{formatShortDate(task.createdAt)}</span>
+          <p className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${isOverdue ? 'text-rose-600' : 'text-slate-400'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${isOverdue ? 'bg-rose-600 animate-pulse shadow-[0_0_8px_rgba(225,29,72,0.4)]' : 'bg-slate-200'}`}></span>
+            Thời hạn kết thúc: <span className={`${isOverdue ? 'font-black' : 'font-bold text-slate-600'}`}>{formatShortDate(task.endDate)}</span>
           </p>
           <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)]"></span>
-            Cập nhật: <span className="font-bold">{formatShortDate(lastLog ? lastLog.timestamp : task.createdAt)}</span>
+            Cập nhật lần cuối: <span className="font-bold">{formatShortDate(lastLog ? lastLog.timestamp : task.createdAt)}</span>
           </p>
           
           {isOverdue && (
             <div className="flex items-center gap-2 text-rose-600 mt-1 animate-pulse">
               <Icons.Alert />
-              <span className="text-[10px] font-black uppercase tracking-[0.15em]">Tồn đọng</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.15em]">Tồn đọng / Quá hạn</span>
             </div>
           )}
         </div>
@@ -152,7 +153,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
         {showQuickActions && (
           <div className="flex gap-2">
-            {/* Nhóm trạng thái chưa xong (TODO, IN_PROGRESS, PAUSED, REDO) */}
             {(task.status === TaskStatus.TODO || task.status === TaskStatus.IN_PROGRESS || task.status === TaskStatus.PAUSED || task.status === TaskStatus.REDO) ? (
               <>
                 {(task.status === TaskStatus.TODO || task.status === TaskStatus.REDO) && (
@@ -183,7 +183,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   </button>
                 )}
                 
-                {/* ẨN NÚT HOÀN THÀNH KHI TRẠNG THÁI LÀ TẠM DỪNG (PAUSED) */}
                 {task.status !== TaskStatus.PAUSED && (
                   <button 
                     title="Hoàn thành"
@@ -203,7 +202,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 </button>
               </>
             ) : (
-              /* Nhóm trạng thái DONE, CANCELLED */
               ((task.status === TaskStatus.DONE && task.evaluation === "Tệ") || 
                task.status === TaskStatus.CANCELLED) && (
                 <button 
