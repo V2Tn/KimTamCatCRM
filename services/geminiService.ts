@@ -41,7 +41,7 @@ export const analyzeTask = async (title: string, description: string): Promise<{
 
 export const checkPermission = async (currentUser: User, action: string, targetUserId?: string): Promise<{ allowed: boolean; message: string }> => {
   // Use gemini-3-pro-preview for complex logic-based reasoning like permission checks
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   const prompt = `
     Dựa trên quy tắc RBAC sau:
