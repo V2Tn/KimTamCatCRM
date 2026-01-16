@@ -51,15 +51,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   const isFinished = task.status === TaskStatus.DONE;
   const statusConfig = STATUS_CONFIG[task.status];
   const creatorUser = users.find(u => u.id === task.creatorId);
+  const assigneeUser = users.find(u => u.id === task.assigneeId);
   const lastLog = task.logs && task.logs.length > 0 ? task.logs[task.logs.length - 1] : null;
 
-  // Logic: Kiểm tra tồn đọng (Quá hạn & Chưa hoàn thành)
   const isOverdue = React.useMemo(() => {
     if (!task.endDate || isFinished || task.status === TaskStatus.CANCELLED) return false;
     return new Date(task.endDate) < new Date();
   }, [task.endDate, isFinished, task.status]);
 
-  // Logic hiển thị Quick Actions: 
   const isRelated = currentUserId === task.creatorId || currentUserId === task.assigneeId;
   const showQuickActions = isRelated && (
     (task.assigneeId === task.creatorId) || 
@@ -73,6 +72,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   );
 
   const creatorDisplayName = task.creatorId === currentUserId ? 'Tôi' : (creatorUser?.name || '---');
+  const assigneeDisplayName = task.assigneeId === currentUserId ? 'Tôi' : (assigneeUser?.name || '---');
 
   const formatShortDate = (dateStr?: string) => {
     if (!dateStr) return '---';
@@ -95,20 +95,33 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       onClick={onClick}
       className={`group relative bg-white p-6 rounded-[2.8rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:border-indigo-100 transition-all duration-500 cursor-pointer grid grid-cols-[1fr_auto] gap-6 active:scale-[0.99] ${isFinished ? 'bg-slate-50/50' : ''}`}
     >
-      {/* CỘT TRÁI: THÔNG TIN */}
-      <div className="flex flex-col gap-4 min-w-0">
-        <h4 className={`text-[16px] font-black text-slate-800 leading-tight transition-all break-words ${isFinished ? 'line-through text-slate-300 italic' : ''}`}>
+      <div className="flex flex-col gap-4 min-w-0 overflow-hidden">
+        {/* Tiêu đề: HIỆN FULL - CÓ WRAP */}
+        <h4 className={`text-[16px] font-black text-slate-800 leading-tight transition-all break-words whitespace-normal ${isFinished ? 'line-through text-slate-300 italic' : ''}`}>
           {task.title}
         </h4>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider border whitespace-nowrap ${statusConfig?.bgColor || 'bg-slate-50'} ${statusConfig?.color || 'text-slate-500'} border-current/10`}>
+        {/* Cấu trúc đồng bộ: Trạng thái | GIAO BỞI | THỰC HIỆN (KHÔNG WRAP) */}
+        <div className="flex items-center gap-1.5 md:gap-2 flex-nowrap whitespace-nowrap overflow-hidden">
+          <span className={`flex-shrink-0 px-1.5 py-0.5 rounded-lg text-[7.5px] font-black uppercase tracking-wider border whitespace-nowrap ${statusConfig?.bgColor || 'bg-slate-50'} ${statusConfig?.color || 'text-slate-500'} border-current/10`}>
             {statusConfig?.title || 'KHÔNG XÁC ĐỊNH'}
           </span>
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter shrink-0">Giao bởi:</span>
-            <span className={`text-[10px] font-black uppercase truncate ${task.creatorId === currentUserId ? 'text-indigo-600' : 'text-slate-700'}`}>
+          
+          <span className="flex-shrink-0 text-[10px] text-slate-200 select-none">|</span>
+          
+          <div className="flex items-center gap-1 flex-shrink-0 whitespace-nowrap">
+            <span className="text-[7.5px] font-bold text-slate-400 uppercase tracking-tighter">GIAO BỞI:</span>
+            <span className={`text-[8.5px] font-black uppercase whitespace-nowrap ${task.creatorId === currentUserId ? 'text-indigo-600' : 'text-slate-700'}`}>
               {creatorDisplayName}
+            </span>
+          </div>
+          
+          <span className="flex-shrink-0 text-[10px] text-slate-200 select-none">|</span>
+          
+          <div className="flex items-center gap-1 flex-shrink-0 whitespace-nowrap">
+            <span className="text-[7.5px] font-bold text-slate-400 uppercase tracking-tighter">THỰC HIỆN:</span>
+            <span className={`text-[8.5px] font-black uppercase whitespace-nowrap ${task.assigneeId === currentUserId ? 'text-indigo-600' : 'text-slate-700'}`}>
+              {assigneeDisplayName}
             </span>
           </div>
         </div>
@@ -132,7 +145,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         </div>
       </div>
 
-      {/* CỘT PHẢI: BỘ NÚT HÀNH ĐỘNG */}
       <div className="flex flex-col justify-between items-end shrink-0 py-1">
         <div className="flex gap-2">
           <button 

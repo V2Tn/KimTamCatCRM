@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Quadrant, Task, User, Role } from '../../types';
+import { Quadrant, Task, User, Role, Attachment } from '../../types';
 import { QUADRANT_CONFIG } from '../../constants';
 import { UserSelect } from '../Common/UserSelect';
 
@@ -23,7 +23,7 @@ export const TaskCreateModal: React.FC<TaskCreateModalProps> = ({ isOpen, onClos
   const [quadrant, setQuadrant] = useState<Quadrant>(Quadrant.Q1);
   const [startDate, setStartDate] = useState(formatForInput(new Date()));
   const [endDate, setEndDate] = useState(formatForInput(new Date(new Date().setHours(new Date().getHours() + 4))));
-  const [attachments, setAttachments] = useState<string[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [error, setError] = useState<string | null>(null);
   
   const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>([currentUser.id]);
@@ -48,12 +48,21 @@ export const TaskCreateModal: React.FC<TaskCreateModalProps> = ({ isOpen, onClos
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    (Array.from(files) as File[]).forEach(file => {
+    // Fix: Explicitly typing 'file' to avoid 'unknown' type errors for property 'name' and passing to 'readAsDataURL'
+    Array.from(files).forEach((file: File) => {
       const reader = new FileReader();
-      reader.onloadend = () => setAttachments(prev => [...prev, reader.result as string]);
+      reader.onloadend = () => {
+        setAttachments(prev => [...prev, { name: file.name, data: reader.result as string }]);
+      };
       reader.readAsDataURL(file);
     });
   };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const isImage = (data: string) => data?.startsWith('data:image/');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +86,7 @@ export const TaskCreateModal: React.FC<TaskCreateModalProps> = ({ isOpen, onClos
       `}</style>
       <div className="bg-white md:rounded-[2.5rem] shadow-2xl w-full max-w-6xl h-full md:h-auto md:max-h-[95vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-white/20">
         
-        {/* Header - Đồng bộ với TaskDetail */}
+        {/* Header */}
         <div className={`px-6 md:px-10 py-5 md:py-6 relative flex items-center justify-center shrink-0 ${QUADRANT_CONFIG[quadrant].bgColor} border-b ${QUADRANT_CONFIG[quadrant].borderColor}`}>
           <h2 className={`text-lg md:text-xl font-black uppercase tracking-[0.2em] ${QUADRANT_CONFIG[quadrant].color}`}>
             {QUADRANT_CONFIG[quadrant].title}
@@ -86,11 +95,9 @@ export const TaskCreateModal: React.FC<TaskCreateModalProps> = ({ isOpen, onClos
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
-          {/* Main Scrollable Body - Duy nhất một vùng cuộn */}
           <div className="flex-1 overflow-y-auto p-6 md:p-12 hide-scrollbar">
             <div className="grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr] gap-8 md:gap-12">
               
-              {/* Cột 1: Tiêu đề & Mô tả (Hiện trước trên mobile) */}
               <div className="space-y-6 md:space-y-8">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-950 uppercase tracking-[0.2em] ml-1">Tiêu đề công việc</label>
@@ -109,29 +116,44 @@ export const TaskCreateModal: React.FC<TaskCreateModalProps> = ({ isOpen, onClos
                     value={description} 
                     onChange={e => setDescription(e.target.value)}
                     placeholder="Ghi chú nội dung thực hiện..." 
-                    className="w-full min-h-[150px] md:min-h-[220px] p-5 md:p-8 bg-slate-50/50 rounded-[1.5rem] md:rounded-[2rem] border-2 border-transparent focus:bg-white focus:border-indigo-100 outline-none text-sm md:text-base font-bold text-slate-700 leading-relaxed resize-none transition-all hide-scrollbar"
+                    className="w-full min-h-[150px] md:min-h-[200px] p-5 md:p-8 bg-slate-50/50 rounded-[1.5rem] md:rounded-[2rem] border-2 border-transparent focus:bg-white focus:border-indigo-100 outline-none text-sm md:text-base font-bold text-slate-700 leading-relaxed resize-none transition-all hide-scrollbar"
                   />
                 </div>
 
-                {/* Đính kèm - Hiện dưới Mô tả */}
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-3 px-6 py-3 bg-white border-2 border-slate-100 hover:border-indigo-600 rounded-2xl cursor-pointer transition-all active:scale-95 group shadow-sm">
-                    <span className="text-xl">📎</span>
-                    <span className="text-[10px] font-black text-slate-950 uppercase tracking-widest">Đính kèm tài liệu</span>
-                    <input type="file" multiple className="hidden" onChange={handleFileChange} />
-                  </label>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-3 px-6 py-3 bg-white border-2 border-slate-100 hover:border-indigo-600 rounded-2xl cursor-pointer transition-all active:scale-95 group shadow-sm">
+                      <span className="text-xl">📎</span>
+                      <span className="text-[10px] font-black text-slate-950 uppercase tracking-widest">Đính kèm tài liệu</span>
+                      <input type="file" multiple className="hidden" onChange={handleFileChange} />
+                    </label>
+                  </div>
+
                   {attachments.length > 0 && (
-                    <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
-                      {attachments.length} TỆP TIN
-                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-[2rem] border border-slate-100">
+                      {attachments.map((file, idx) => (
+                        <div key={idx} className="relative group aspect-square rounded-2xl overflow-hidden border border-white shadow-sm bg-white">
+                          {isImage(file.data) ? (
+                            <img src={file.data} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center">
+                              <span className="text-3xl mb-1">📄</span>
+                              <span className="text-[8px] font-black text-slate-400 uppercase break-all px-2 leading-tight">{file.name}</span>
+                            </div>
+                          )}
+                          <button 
+                            type="button"
+                            onClick={() => removeAttachment(idx)}
+                            className="absolute top-2 right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-[10px] font-bold"
+                          >✕</button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
 
-              {/* Cột 2: Cấu hình (Hiện sau trên mobile) */}
               <div className="space-y-6 md:space-y-8 bg-slate-50/50 p-6 md:p-8 rounded-[2.5rem] border border-slate-100">
-                
-                {/* Quadrant Selector */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest ml-1 italic">Loại công việc</label>
                   <div className="grid grid-cols-2 gap-2.5">
@@ -173,7 +195,6 @@ export const TaskCreateModal: React.FC<TaskCreateModalProps> = ({ isOpen, onClos
                   multiple={true}
                 />
 
-                {/* DateTime Selection */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest block ml-1">Bắt đầu</label>
@@ -200,14 +221,10 @@ export const TaskCreateModal: React.FC<TaskCreateModalProps> = ({ isOpen, onClos
                     ⚠️ {error}
                   </div>
                 )}
-                
-                {/* Khoảng đệm để dropdown không bị che khi cuộn xuống đáy */}
-                <div className="h-20 md:h-0"></div>
               </div>
             </div>
           </div>
 
-          {/* Sticky Footer - Luôn cố định ở đáy */}
           <div className="sticky bottom-0 shrink-0 px-6 py-6 md:py-8 bg-white border-t border-slate-50 flex justify-center items-center z-[50]">
             <button 
               type="submit" 

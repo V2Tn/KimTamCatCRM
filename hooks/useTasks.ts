@@ -73,6 +73,7 @@ export const useTasks = (currentUser: User, users: User[]) => {
         createdAt: new Date().toISOString(),
         startDate: taskData.startDate,
         endDate: taskData.endDate,
+        attachments: taskData.attachments || [],
         logs: [createLogEntry(`Tạo bởi ${currentUser.name}${assigneeId !== currentUser.id ? ` giao cho ${assigneeName}` : ''}`, currentUser.id)]
       };
     });
@@ -85,31 +86,43 @@ export const useTasks = (currentUser: User, users: User[]) => {
         const newLogs = [...(t.logs || [])];
         const isAdminOrManager = currentUser.role === Role.ADMIN || currentUser.role === Role.SUPER_ADMIN || currentUser.role === Role.MANAGER;
         
-        // Logic REDO (Làm lại): Gán log cho ID người tạo task ban đầu
+        // 1. Kiểm tra thay đổi người thực hiện (Reassignment)
+        if (updates.assigneeId && updates.assigneeId !== t.assigneeId) {
+          const oldAssignee = users.find(u => u.id === t.assigneeId)?.name || 'N/A';
+          const newAssignee = users.find(u => u.id === updates.assigneeId)?.name || 'N/A';
+          newLogs.push(createLogEntry(
+            `${currentUser.name} đã điều phối lại công việc từ ${oldAssignee} sang ${newAssignee}`,
+            currentUser.id
+          ));
+        }
+
+        // 2. Kiểm tra yêu cầu làm lại
         if (updates.status === TaskStatus.REDO && t.status === TaskStatus.DONE) {
           const valToLog = t.evaluation || "Chưa có";
           newLogs.push(createLogEntry(
-            `Thực hiện lại (Đánh giá cũ: ${valToLog})`, 
-            t.creatorId // Sử dụng ID người tạo ban đầu theo yêu cầu
+            `${currentUser.name} yêu cầu thực hiện lại (Đánh giá cũ: ${valToLog})`, 
+            currentUser.id
           ));
           return { ...t, ...updates, logs: newLogs, evaluation: undefined };
         }
 
+        // 3. Kiểm tra thay đổi trạng thái và nội dung báo cáo
         const hasStatusChange = updates.status && updates.status !== t.status;
         const statusTitle = STATUS_CONFIG[updates.status || t.status]?.title || 'KHÔNG XÁC ĐỊNH';
         
         if (updates.resultContent !== undefined && updates.resultContent !== (t.resultContent || '')) {
           newLogs.push(createLogEntry(
-            `${currentUser.name} báo cáo: ${updates.resultContent.substring(0, 30)}${updates.resultContent.length > 30 ? '...' : ''} (Trạng thái: ${statusTitle})`, 
+            `${currentUser.name} báo cáo kết quả: ${updates.resultContent.substring(0, 30)}${updates.resultContent.length > 30 ? '...' : ''} (Trạng thái: ${statusTitle})`, 
             currentUser.id
           ));
         } else if (hasStatusChange) {
           newLogs.push(createLogEntry(
-            `${currentUser.name} chuyển trạng thái thành ${statusTitle}`, 
+            `${currentUser.name} đã cập nhật trạng thái thành ${statusTitle}`, 
             currentUser.id
           ));
         }
 
+        // 4. Kiểm tra đánh giá của quản lý
         const hasEvaluationChange = updates.evaluation !== undefined && updates.evaluation !== t.evaluation;
         if (hasEvaluationChange && isAdminOrManager) {
           newLogs.push(createLogEntry(

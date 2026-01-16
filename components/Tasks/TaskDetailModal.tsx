@@ -1,6 +1,7 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { Task, User, TaskStatus, Role, TaskLog } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { Task, User, TaskStatus, Role, TaskLog, Attachment } from '../../types';
 import { QUADRANT_CONFIG } from '../../constants';
 import { UserSelect } from '../Common/UserSelect';
 
@@ -14,6 +15,7 @@ interface TaskDetailModalProps {
   onUpdateTask: (id: string, updates: Partial<Task>) => void;
   currentUserId: string;
   initialStatus?: TaskStatus | null;
+  readonly?: boolean;
 }
 
 const LogItem: React.FC<{ log: TaskLog, users: User[] }> = ({ log, users }) => {
@@ -41,17 +43,19 @@ const EVALUATION_COLORS: Record<string, { bg: string; text: string; border: stri
 };
 
 export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ 
-  task, users, onClose, onUpdateTask, currentUserId, initialStatus 
+  task, users, onClose, onUpdateTask, currentUserId, initialStatus, readonly = false
 }) => {
   const [localTitle, setLocalTitle] = useState(task.title);
   const [localStatus, setLocalStatus] = useState(initialStatus || task.status);
   const [localAssigneeIds, setLocalAssigneeIds] = useState<string[]>([task.assigneeId]);
   const [localResultContent, setLocalResultContent] = useState(task.resultContent || '');
+  const [localResultAttachments, setLocalResultAttachments] = useState<Attachment[]>(task.resultAttachments || []);
   const [localStartDate, setLocalStartDate] = useState(task.startDate || '');
   const [localEndDate, setLocalEndDate] = useState(task.endDate || '');
   const [localEvaluation, setLocalEvaluation] = useState(task.evaluation || '');
   
   const [tempEvaluation, setTempEvaluation] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<Attachment | null>(null);
 
   const config = QUADRANT_CONFIG[task.quadrant];
   const isFinished = task.status === TaskStatus.DONE;
@@ -60,23 +64,24 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   const isAdminOrManager = currentUser?.role === Role.ADMIN || currentUser?.role === Role.SUPER_ADMIN || currentUser?.role === Role.MANAGER;
   const isAssignee = task.assigneeId === currentUserId;
 
-  // Logic hiển thị nút Cập nhật:
-  // 1. Ẩn nếu trạng thái là DONE (Hoàn thành) VÀ đã có bất kỳ đánh giá nào (evaluation).
-  // 2. Hiện nếu là DONE nhưng CHƯA đánh giá (để quản lý chọn đánh giá rồi bấm Lưu).
-  // 3. Hiện cho các trạng thái khác (TODO, IN_PROGRESS, REDO...).
-  const showUpdateButton = useMemo(() => {
-    if (task.status === TaskStatus.DONE) {
-      // Nếu đã tồn tại đánh giá chính thức từ DB, ẩn nút.
-      if (task.evaluation && task.evaluation.trim() !== "") {
-        return false;
-      }
-      return true;
-    }
-    
-    return true;
-  }, [task.status, task.evaluation]);
+  const showUpdateButton = !readonly && (initialStatus === TaskStatus.DONE || !isFinished || isAdminOrManager);
 
-  const showRatingPanel = isAdminOrManager && (task.status === TaskStatus.DONE) && !task.evaluation;
+  const isImage = (data: string) => data?.startsWith('data:image/');
+
+  const handleResultFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    // Fix: Explicitly typing 'file' to avoid 'unknown' type errors for property 'name' and passing to 'readAsDataURL'
+    Array.from(files).forEach((file: File) => {
+      const reader = new FileReader();
+      reader.onloadend = () => setLocalResultAttachments(prev => [...prev, { name: file.name, data: reader.result as string }]);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeResultAttachment = (index: number) => {
+    setLocalResultAttachments(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleUpdate = () => {
     onUpdateTask(task.id, {
@@ -84,6 +89,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
       status: localStatus,
       assigneeId: localAssigneeIds[0],
       resultContent: localResultContent,
+      resultAttachments: localResultAttachments,
       startDate: localStartDate,
       endDate: localEndDate,
       evaluation: tempEvaluation || localEvaluation || task.evaluation
@@ -91,13 +97,9 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
     onClose();
   };
 
-  const handleRatingSelect = (rating: string) => {
-    setTempEvaluation(rating);
-  };
-
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[2000] flex items-center justify-center p-0 md:p-4 animate-in fade-in duration-300">
-      <div className="bg-white md:rounded-[3.5rem] shadow-2xl w-full max-w-5xl h-full md:h-auto md:max-h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-white md:rounded-[3.5rem] shadow-2xl w-full max-w-6xl h-full md:h-auto md:max-h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         
         {/* Header */}
         <div className={`sticky top-0 z-[2100] px-6 py-5 shrink-0 ${config.bgColor} border-b ${config.borderColor} flex items-center justify-between bg-inherit`}>
@@ -107,143 +109,156 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
           <button onClick={onClose} className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-400 font-bold shadow-sm hover:scale-105 active:scale-95 transition-all">✕</button>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto hide-scrollbar bg-white p-6 md:p-10">
           <div className="space-y-8">
-            <div className="space-y-4 border-b border-slate-50 pb-6">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest italic">Tên công việc</label>
-                <input 
-                  value={localTitle}
-                  disabled={isFinished}
-                  onChange={(e) => setLocalTitle(e.target.value)}
-                  className={`w-full text-xl md:text-3xl font-black text-slate-800 outline-none bg-transparent ${isFinished ? 'line-through text-slate-300' : ''}`}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest italic">Mô tả công việc</label>
-                <div className="mt-1 p-5 bg-slate-50 rounded-[1.5rem] text-sm text-slate-600 font-medium italic border border-slate-100 leading-relaxed shadow-inner">
-                  {task.description}
-                </div>
-              </div>
+            <div className="space-y-1 border-b border-slate-50 pb-6">
+              <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest italic">Tên công việc</label>
+              <input 
+                value={localTitle}
+                disabled={isFinished || readonly}
+                onChange={(e) => setLocalTitle(e.target.value)}
+                className={`w-full text-xl md:text-3xl font-black text-slate-800 outline-none bg-transparent ${isFinished ? 'line-through text-slate-300' : ''}`}
+              />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-              <div className="space-y-6">
-                <div className="space-y-2">
+              <div className="space-y-8">
+                <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest">BÁO CÁO KẾT QUẢ</label>
-                    {initialStatus === TaskStatus.DONE && <span className="text-[9px] font-black text-indigo-600 animate-pulse uppercase tracking-widest">Yêu cầu nhập báo cáo để hoàn thành</span>}
+                    <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest italic">BÁO CÁO KẾT QUẢ</label>
                   </div>
+                  
                   <textarea 
-                    autoFocus={initialStatus === TaskStatus.DONE}
+                    autoFocus={initialStatus === TaskStatus.DONE && !readonly}
                     value={localResultContent}
-                    disabled={!isAssignee || isFinished}
+                    disabled={!isAssignee || isFinished || readonly}
                     onChange={(e) => setLocalResultContent(e.target.value)}
-                    placeholder="Nhập báo cáo kết quả thực hiện tại đây..."
-                    className={`w-full min-h-[160px] p-6 bg-slate-50/50 rounded-[2rem] border-2 ${initialStatus === TaskStatus.DONE ? 'border-indigo-400 shadow-lg shadow-indigo-50' : 'border-slate-100'} focus:border-indigo-500 outline-none text-sm font-bold text-slate-700 leading-relaxed shadow-inner transition-all`}
+                    placeholder={readonly ? "Chưa có báo cáo kết quả" : "Nhập báo cáo kết quả thực hiện..."}
+                    className="w-full min-h-[150px] p-6 bg-slate-50/50 rounded-[2rem] border-2 border-slate-100 focus:border-indigo-500 outline-none text-sm font-bold text-slate-700 shadow-inner"
                   />
+
+                  <div className="space-y-3">
+                    {!isFinished && !readonly && isAssignee && (
+                      <label className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl cursor-pointer hover:bg-indigo-100 transition-all text-[10px] font-black uppercase tracking-widest">
+                        <span>📸</span> Đính kèm minh chứng
+                        <input type="file" multiple className="hidden" onChange={handleResultFileChange} />
+                      </label>
+                    )}
+
+                    {localResultAttachments.length > 0 && (
+                      <div className="grid grid-cols-3 gap-3 p-4 bg-slate-50 rounded-[2rem] border border-slate-100 shadow-inner">
+                        {localResultAttachments.map((file, idx) => (
+                          <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden bg-white border border-slate-100 shadow-sm flex flex-col">
+                            {isImage(file.data) ? (
+                              <img src={file.data} className="w-full h-full object-cover cursor-pointer hover:scale-110 transition-transform" onClick={() => setPreviewImage(file)} />
+                            ) : (
+                              <a href={file.data} download={file.name} className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-slate-50 hover:bg-white transition-colors overflow-hidden">
+                                <span className="text-2xl">📄</span>
+                                <span className="text-[8px] font-black text-slate-400 uppercase truncate w-full px-1">{file.name}</span>
+                              </a>
+                            )}
+                            {!isFinished && !readonly && isAssignee && (
+                              <button onClick={() => removeResultAttachment(idx)} className="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full text-[8px] opacity-0 group-hover:opacity-100 transition-opacity z-10">✕</button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest">NHẬT KÝ HOẠT ĐỘNG</label>
-                  <div className="bg-slate-50/50 rounded-[2rem] p-6 space-y-5 max-h-[250px] overflow-y-auto border border-slate-100 shadow-inner hide-scrollbar">
+                  <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest italic">NHẬT KÝ HOẠT ĐỘNG</label>
+                  <div className="bg-slate-50/50 rounded-[2rem] p-6 space-y-5 max-h-[300px] overflow-y-auto border border-slate-100 shadow-inner hide-scrollbar">
                     {task.logs?.slice().reverse().map(log => <LogItem key={log.id} log={log} users={users} />)}
-                    {(!task.logs || task.logs.length === 0) && (
-                      <p className="text-[10px] text-slate-300 font-black uppercase text-center py-4 tracking-widest">Chưa có hoạt động</p>
-                    )}
                   </div>
                 </div>
               </div>
 
+              {/* PHẦN MÔ TẢ CÔNG VIỆC - ĐÃ CẬP NHẬT TÊN NHÃN */}
               <div className="space-y-6">
-                <div className="p-6 bg-slate-50/50 rounded-[2.5rem] border border-slate-100 space-y-6 shadow-sm">
+                <div className="bg-indigo-50/30 rounded-[2.5rem] border border-indigo-100/50 overflow-hidden shadow-sm">
+                   <div className="p-6 pb-4 flex justify-between items-center">
+                     <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest italic ml-1">MÔ TẢ CÔNG VIỆC</label>
+                     <span className="text-[8px] font-black text-indigo-300 uppercase">Giao bởi: {users.find(u => u.id === task.creatorId)?.name === currentUser?.name ? 'Tôi' : users.find(u => u.id === task.creatorId)?.name}</span>
+                   </div>
+                   <div className="px-6 pb-6 space-y-5">
+                     <div className="text-sm text-slate-700 font-bold leading-relaxed bg-white/80 p-6 rounded-3xl italic border border-white shadow-inner min-h-[100px] whitespace-pre-wrap">
+                        {task.description || 'Không có mô tả chi tiết cho công việc này.'}
+                     </div>
+
+                     {task.attachments && task.attachments.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {task.attachments.map((file, idx) => (
+                            <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-white shadow-md bg-white group hover:scale-[1.03] transition-all cursor-pointer flex flex-col">
+                              {/* Fix: task.attachments is Attachment[] based on types.ts, accessing .data */}
+                              {isImage(typeof file === 'string' ? file : file.data) ? (
+                                <img src={typeof file === 'string' ? file : file.data} className="w-full h-full object-cover" onClick={() => setPreviewImage(typeof file === 'string' ? {name: `Attachment ${idx+1}`, data: file} : file)} />
+                              ) : (
+                                <a href={typeof file === 'string' ? file : file.data} download={typeof file === 'string' ? `attachment-${idx}` : file.name} className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-indigo-500 bg-slate-50 hover:bg-white transition-colors overflow-hidden">
+                                  <span className="text-2xl mb-1">📄</span>
+                                  <span className="text-[8px] font-black uppercase tracking-tighter truncate w-full px-2">{typeof file === 'string' ? `File ${idx + 1}` : file.name}</span>
+                                </a>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                     )}
+                   </div>
+                </div>
+
+                <div className="p-6 bg-slate-50/50 rounded-[2.5rem] border border-slate-100 space-y-6">
                   <UserSelect 
                     label="NGƯỜI THỰC HIỆN"
                     users={users}
                     selectedValues={localAssigneeIds}
                     onChange={setLocalAssigneeIds}
                     multiple={false}
-                    disabled={!isAdminOrManager || isFinished}
+                    disabled={!isAdminOrManager || isFinished || readonly}
                     placeholder={task.assigneeId === currentUserId ? 'Tôi' : 'Chọn nhân sự...'}
                   />
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest block ml-1">NGÀY BẮT ĐẦU</label>
-                      <input 
-                        type="datetime-local" 
-                        readOnly={true}
-                        disabled={true} 
-                        value={localStartDate ? new Date(localStartDate).toISOString().slice(0, 16) : ''} 
-                        className="w-full px-4 py-3 bg-slate-100/50 cursor-not-allowed rounded-xl border-2 border-slate-100 text-[10px] font-black outline-none transition-all" 
-                      />
+                      <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest block ml-1 italic">NGÀY BẮT ĐẦU</label>
+                      <input type="datetime-local" disabled value={localStartDate ? new Date(localStartDate).toISOString().slice(0, 16) : ''} className="w-full px-4 py-3 bg-slate-100/50 rounded-xl border-2 border-slate-100 text-[10px] font-black" />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest block ml-1">NGÀY KẾT THÚC</label>
-                      <input 
-                        type="datetime-local" 
-                        readOnly={true}
-                        disabled={true} 
-                        value={localEndDate ? new Date(localEndDate).toISOString().slice(0, 16) : ''} 
-                        className="w-full px-4 py-3 bg-slate-100/50 cursor-not-allowed rounded-xl border-2 border-slate-100 text-[10px] font-black text-red-400 outline-none transition-all" 
-                      />
+                      <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest block ml-1 italic">NGÀY KẾT THÚC</label>
+                      <input type="datetime-local" disabled value={localEndDate ? new Date(localEndDate).toISOString().slice(0, 16) : ''} className="w-full px-4 py-3 bg-slate-100/50 rounded-xl border-2 border-slate-100 text-[10px] font-black text-red-400" />
                     </div>
                   </div>
                 </div>
-
-                {(showRatingPanel || task.evaluation) && (
-                  <div className="p-6 bg-slate-50/50 rounded-[2.5rem] border border-slate-100 space-y-4 animate-in slide-in-from-top-4">
-                    <label className="text-[10px] font-black text-slate-950 uppercase tracking-widest block italic ml-1">ĐÁNH GIÁ QUẢN LÝ</label>
-                    
-                    {task.evaluation ? (
-                      <div className={`py-4 rounded-2xl border text-center shadow-sm ${EVALUATION_COLORS[task.evaluation]?.bg || 'bg-white'} ${EVALUATION_COLORS[task.evaluation]?.border || 'border-slate-100'}`}>
-                        <p className={`text-sm font-black uppercase tracking-widest ${EVALUATION_COLORS[task.evaluation]?.text || 'text-slate-700'}`}>
-                          {task.evaluation}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-2">
-                        {["Xuất Sắc", "Tốt", "Bình thường", "Tệ"].map(opt => {
-                          const isSelected = tempEvaluation === opt;
-                          const colorCfg = EVALUATION_COLORS[opt];
-                          return (
-                            <button 
-                              key={opt} 
-                              type="button"
-                              onClick={() => handleRatingSelect(opt)} 
-                              className={`py-3 px-3 rounded-xl text-[9px] font-black uppercase transition-all border shadow-sm active:scale-95 ${
-                                isSelected 
-                                ? colorCfg.active 
-                                : `bg-white ${colorCfg.text} border-slate-100 hover:${colorCfg.border}`
-                              }`}
-                            >
-                              {opt}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="sticky bottom-0 z-[2100] px-6 py-6 md:py-8 bg-white border-t border-slate-100 flex items-center justify-center shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]">
-          {showUpdateButton && (
-            <button 
-              onClick={handleUpdate}
-              disabled={initialStatus === TaskStatus.DONE && !localResultContent.trim()}
-              className={`w-full md:w-auto px-16 md:px-24 py-5 md:py-6 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.25em] shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-4 ${initialStatus === TaskStatus.DONE && !localResultContent.trim() ? 'bg-slate-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-black'}`}
-            >
-              {initialStatus === TaskStatus.DONE ? 'XÁC NHẬN HOÀN THÀNH' : 'CẬP NHẬT'}
+        {showUpdateButton && (
+          <div className="sticky bottom-0 z-[2100] px-6 py-6 md:py-8 bg-white border-t border-slate-100 flex items-center justify-center shrink-0">
+            <button onClick={handleUpdate} className="w-full md:w-auto px-16 md:px-24 py-5 md:py-6 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] shadow-2xl hover:bg-black transition-all">
+              {initialStatus === TaskStatus.DONE ? 'XÁC NHẬN HOÀN THÀNH' : 'LƯU THAY ĐỔI'}
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+
+      {previewImage && createPortal(
+        <div className="fixed inset-0 z-[5000] bg-slate-950/90 backdrop-blur-xl flex flex-col items-center justify-center p-4" onClick={() => setPreviewImage(null)}>
+          <div className="relative animate-in zoom-in-95 duration-200 flex flex-col items-center">
+             <img src={previewImage.data} className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10" onClick={(e) => e.stopPropagation()} />
+             <div className="mt-6 flex flex-col items-center gap-2">
+                <p className="text-white text-[12px] font-black uppercase tracking-widest">{previewImage.name}</p>
+                <div className="flex gap-4">
+                   <a href={previewImage.data} download={previewImage.name} onClick={(e) => e.stopPropagation()} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-indigo-600 transition-all">TẢI XUỐNG</a>
+                   <button onClick={() => setPreviewImage(null)} className="px-6 py-3 bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all">ĐÓNG LẠI</button>
+                </div>
+             </div>
+             <button onClick={() => setPreviewImage(null)} className="absolute -top-12 right-0 md:-right-12 w-10 h-10 bg-white/20 text-white rounded-full font-bold flex items-center justify-center hover:bg-white/40">✕</button>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

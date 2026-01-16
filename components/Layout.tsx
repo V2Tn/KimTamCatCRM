@@ -8,6 +8,7 @@ interface LayoutProps {
   onLogout: () => void;
   onUserSelect: (user: User) => void;
   onSettingsOpen?: () => void;
+  onStaffManagementOpen?: () => void;
   onLogoClick?: () => void;
   children: React.ReactNode;
 }
@@ -17,6 +18,7 @@ export const Layout: React.FC<LayoutProps> = ({
   onLogout, 
   onUserSelect, 
   onSettingsOpen, 
+  onStaffManagementOpen,
   onLogoClick,
   children 
 }) => {
@@ -25,6 +27,7 @@ export const Layout: React.FC<LayoutProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = currentUser.role === Role.ADMIN || currentUser.role === Role.SUPER_ADMIN;
+  const isManagerOrAdmin = isAdmin || currentUser.role === Role.MANAGER;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -41,6 +44,11 @@ export const Layout: React.FC<LayoutProps> = ({
     setIsMobileNavOpen(false);
   };
 
+  const handleStaffClick = () => {
+    onStaffManagementOpen?.();
+    setIsMobileNavOpen(false);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#F9FAFE]">
       {/* Header - Z-index: 50 */}
@@ -54,16 +62,27 @@ export const Layout: React.FC<LayoutProps> = ({
         </div>
         
         <div className="flex items-center gap-2 md:gap-6 relative" ref={menuRef}>
-          {/* Desktop Settings Button */}
-          {isAdmin && (
-            <button 
-              onClick={onSettingsOpen}
-              className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-indigo-600 transition-all group"
-            >
-              <span className="text-lg group-hover:rotate-45 transition-transform duration-500">⚙️</span>
-              <span className="text-[10px] font-black uppercase tracking-widest">Cài đặt</span>
-            </button>
-          )}
+          {/* Desktop Nav Buttons */}
+          <div className="hidden sm:flex items-center gap-2">
+            {isManagerOrAdmin && (
+              <button 
+                onClick={onStaffManagementOpen}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-indigo-600 transition-all group"
+              >
+                <span className="text-lg group-hover:scale-110 transition-transform">📊</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Nhân sự</span>
+              </button>
+            )}
+            {isAdmin && (
+              <button 
+                onClick={onSettingsOpen}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-indigo-600 transition-all group"
+              >
+                <span className="text-lg group-hover:rotate-45 transition-transform duration-500">⚙️</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Cài đặt</span>
+              </button>
+            )}
+          </div>
 
           {/* User Info & Mobile Hamburger */}
           <div className="flex items-center gap-3">
@@ -160,11 +179,19 @@ export const Layout: React.FC<LayoutProps> = ({
             </div>
             <div className="flex-1 p-4 space-y-2">
               <button 
-                onClick={onLogoClick}
-                className="w-full text-left p-4 rounded-2xl bg-indigo-50 text-indigo-600 font-bold flex items-center gap-3"
+                onClick={() => { onLogoClick?.(); setIsMobileNavOpen(false); }}
+                className="w-full text-left p-4 rounded-2xl hover:bg-slate-50 text-slate-600 font-bold flex items-center gap-3"
               >
                 <span>🏠</span> Dashboard
               </button>
+              {isManagerOrAdmin && (
+                <button 
+                  onClick={handleStaffClick}
+                  className="w-full text-left p-4 rounded-2xl hover:bg-slate-50 text-slate-600 font-bold flex items-center gap-3"
+                >
+                  <span>📊</span> Quản lý nhân sự
+                </button>
+              )}
               {isAdmin && (
                 <button 
                   onClick={handleSettingsClick}

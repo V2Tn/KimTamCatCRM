@@ -7,13 +7,14 @@ import { TaskCreateModal } from './components/Tasks/TaskCreateModal';
 import { SettingsView } from './components/Settings/SettingsView';
 import { TaskDetailModal } from './components/Tasks/TaskDetailModal';
 import { DashboardView } from './components/Dashboard/DashboardView';
+import { AdminStaffManagement } from './components/Admin/AdminStaffManagement';
 import { useTasks } from './hooks/useTasks';
 import { useUsers } from './hooks/useUsers';
 import { Task, User, TaskStatus } from './types';
 
 type TabType = 'Hôm nay' | 'Tuần' | 'Tháng' | 'Năm';
 type ViewMode = 'list' | 'matrix';
-type AppView = 'dashboard' | 'settings';
+type AppView = 'dashboard' | 'settings' | 'staff_management';
 
 const App: React.FC = () => {
   const { 
@@ -81,6 +82,9 @@ const App: React.FC = () => {
   const selectedTask = visibleTasks.find(t => t.id === selectedTaskId);
   const checkCanDelete = (task: Task) => currentUser.role !== 'STAFF' || task.creatorId === currentUser.id;
 
+  // Logic readonly mở rộng: Ẩn nút lưu nếu đang ở view Nhân sự HOẶC Dashboard nhưng tab không phải "Hôm nay"
+  const isModalReadonly = currentView === 'staff_management' || (currentView === 'dashboard' && activeTab !== 'Hôm nay');
+
   return (
     <>
       <Layout 
@@ -89,6 +93,7 @@ const App: React.FC = () => {
         onUserSelect={(user) => { handleLogin(user); setCurrentView('dashboard'); }}
         onSettingsOpen={() => setCurrentView('settings')}
         onLogoClick={() => setCurrentView('dashboard')}
+        onStaffManagementOpen={() => setCurrentView('staff_management')}
       >
         {currentView === 'dashboard' ? (
           <DashboardView 
@@ -107,7 +112,7 @@ const App: React.FC = () => {
             checkCanDelete={checkCanDelete} 
             stats={stats}
           />
-        ) : (
+        ) : currentView === 'settings' ? (
           <SettingsView 
             users={users} 
             departments={departments} 
@@ -124,6 +129,16 @@ const App: React.FC = () => {
             onDeleteDepartment={deleteDepartment} 
             onSyncUsers={setUsers} 
             onBack={() => setCurrentView('dashboard')}
+          />
+        ) : (
+          <AdminStaffManagement 
+            users={users}
+            tasks={visibleTasks}
+            currentUser={currentUser}
+            onTaskClick={handleTaskClick}
+            onEditTask={(task) => setSelectedTaskId(task.id)}
+            onDeleteTask={deleteTask}
+            onUpdateTask={handleUpdateTaskWithToast}
           />
         )}
       </Layout>
@@ -147,6 +162,7 @@ const App: React.FC = () => {
           onUpdateTask={handleUpdateTaskWithToast}
           currentUserId={currentUser.id} 
           initialStatus={pendingStatus}
+          readonly={isModalReadonly}
         />
       )}
 

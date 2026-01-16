@@ -7,10 +7,10 @@ export enum Role {
 }
 
 export enum Quadrant {
-  Q1 = 'Q1', // Urgent & Important
-  Q2 = 'Q2', // Not Urgent & Important
-  Q3 = 'Q3', // Urgent & Not Important
-  Q4 = 'Q4'  // Not Urgent & Not Important
+  Q1 = 'Q1',
+  Q2 = 'Q2',
+  Q3 = 'Q3',
+  Q4 = 'Q4'
 }
 
 export enum TaskStatus {
@@ -20,8 +20,12 @@ export enum TaskStatus {
   REDO = 'REDO',
   PAUSED = 'PAUSED',
   CANCELLED = 'CANCELLED',
-  // Added CLOSED status to sync with types/index.ts and resolve errors in constants
   CLOSED = 'CLOSED'
+}
+
+export interface Attachment {
+  name: string;
+  data: string;
 }
 
 export interface Department {
@@ -69,11 +73,11 @@ export interface Task {
   createdAt: string;
   startDate?: string;
   endDate?: string;
-  attachments?: string[];
+  attachments?: Attachment[];
   resultContent?: string;
-  resultAttachments?: string[];
+  resultAttachments?: Attachment[];
   evaluation?: string; 
-  old_evaluation?: string; // Lưu vết đánh giá cũ khi Redo
+  old_evaluation?: string;
   logs?: TaskLog[]; 
 }
 

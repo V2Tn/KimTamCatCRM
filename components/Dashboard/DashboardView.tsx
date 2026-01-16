@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { TaskItem } from '../Tasks/TaskItem';
 import { EisenhowerMatrix } from '../Tasks/EisenhowerMatrix';
 import { Task, User, Quadrant, TaskStatus } from '../../types';
@@ -95,13 +95,13 @@ const TaskLogAccordion: React.FC<{
   onTaskClick: (t: Task) => void;
   onUpdateTask: (id: string, updates: Partial<Task>) => void;
 }> = ({ tasks, onTaskClick, onUpdateTask }) => {
-  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+  const [openGroups, setOpenGroups] = useState<Set<string> | null>(null);
 
-  const groupedTasks = useMemo(() => {
+  const groupedTasks = useMemo<Record<string, Task[]>>(() => {
     const groups: Record<string, Task[]> = {};
     const sortedTasks = [...tasks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
-    sortedTasks.forEach(task => {
+    sortedTasks.forEach((task: Task) => {
       const date = new Date(task.createdAt);
       const dayNames = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
       const dateStr = `${dayNames[date.getDay()]}, ${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
@@ -112,7 +112,9 @@ const TaskLogAccordion: React.FC<{
   }, [tasks]);
 
   const toggleGroup = (date: string) => {
-    const next = new Set(openGroups);
+    // Nếu chưa tương tác, khởi tạo set với phần tử đầu tiên đang mở
+    const currentOpen = openGroups || new Set([Object.keys(groupedTasks)[0]]);
+    const next = new Set(currentOpen);
     if (next.has(date)) next.delete(date);
     else next.add(date);
     setOpenGroups(next);
@@ -132,7 +134,7 @@ const TaskLogAccordion: React.FC<{
 
       <div className="divide-y divide-slate-50">
         {Object.entries(groupedTasks).map(([date, groupTasks], idx) => {
-          const isOpen = idx === 0 || openGroups.has(date);
+          const isOpen = openGroups ? openGroups.has(date) : idx === 0;
           return (
             <div key={date} className="overflow-hidden">
               <button 
@@ -148,7 +150,7 @@ const TaskLogAccordion: React.FC<{
                   <span className="text-[13px] font-black text-slate-700 tracking-tight">{date}</span>
                 </div>
                 <div className="flex items-center gap-4">
-                   {!isOpen && <span className="text-[10px] text-slate-300 font-bold italic uppercase tracking-widest">Bấm để xem chi tiết</span>}
+                   {!isOpen && <span className="text-[10px] text-slate-300 font-bold italic uppercase tracking-widest">BẤM ĐỂ XEM CHI TIẾT</span>}
                    <span className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[10px] font-black">{groupTasks.length}</span>
                 </div>
               </button>
@@ -240,21 +242,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
            d1.getFullYear() === d2.getFullYear();
   };
 
-  // Tính toán stats cho riêng ngày hôm nay
   const todayStats = useMemo(() => {
     const today = new Date();
-    const todayTasks = visibleTasks.filter(t => isSameDay(new Date(t.createdAt), today));
+    // Fix: Explicit return type for useMemo and typing filter results to ensure 'length' exists
+    const todayTasks = visibleTasks.filter((t: Task) => isSameDay(new Date(t.createdAt), today));
     
-    const done = todayTasks.filter(t => t.status === TaskStatus.DONE).length;
+    const done = todayTasks.filter((t: Task) => t.status === TaskStatus.DONE).length;
     const total = todayTasks.length;
     
     return {
       done,
-      doing: todayTasks.filter(t => t.status === TaskStatus.IN_PROGRESS).length,
-      todo: todayTasks.filter(t => t.status === TaskStatus.TODO).length,
-      redo: todayTasks.filter(t => t.status === TaskStatus.REDO).length,
-      paused: todayTasks.filter(t => t.status === TaskStatus.PAUSED).length,
-      cancelled: todayTasks.filter(t => t.status === TaskStatus.CANCELLED).length,
+      doing: todayTasks.filter((t: Task) => t.status === TaskStatus.IN_PROGRESS).length,
+      todo: todayTasks.filter((t: Task) => t.status === TaskStatus.TODO).length,
+      redo: todayTasks.filter((t: Task) => t.status === TaskStatus.REDO).length,
+      paused: todayTasks.filter((t: Task) => t.status === TaskStatus.PAUSED).length,
+      cancelled: todayTasks.filter((t: Task) => t.status === TaskStatus.CANCELLED).length,
       total,
       percentage: total === 0 ? 0 : Math.round((done / total) * 100)
     };
@@ -281,7 +283,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     onUpdateTask(id, { status, ...additionalUpdates });
   };
 
-  // Logic biểu đồ tiến độ: Hiển thị Done trên nền Xám (Total)
   const chartData = useMemo(() => {
     const data = [];
     const now = new Date();
@@ -296,7 +297,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         data.push({
           name: dStr,
           done: doneCount,
-          remaining: dayTasks.length - doneCount, // Phần chưa hoàn thành
+          remaining: dayTasks.length - doneCount,
           total: dayTasks.length
         });
       }
@@ -340,7 +341,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-20">
-      {/* Top Navigation Bar */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-2.5 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/50">
         <div className="flex bg-slate-50/80 p-1 rounded-full w-full md:w-auto">
           {(['Hôm nay', 'Tuần', 'Tháng', 'Năm'] as TabType[]).map(tab => (
@@ -377,7 +377,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Today Section */}
       {activeTab === 'Hôm nay' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-4 px-6">
@@ -471,7 +470,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       )}
 
-      {/* Non-Today Periodic Section */}
       {activeTab !== 'Hôm nay' && (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="bg-gradient-to-r from-indigo-600 to-indigo-800 rounded-[2.5rem] p-8 md:p-10 text-white shadow-2xl relative overflow-hidden group">
@@ -495,8 +493,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 700 }} />
                   <Tooltip 
                     cursor={{ fill: '#F8FAFC' }}
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
+                    content={({ active, payload }: any) => {
+                      if (active && payload && (payload as any[]).length) {
                         const data = payload[0].payload;
                         return (
                           <div className="bg-slate-900 text-white p-3 rounded-xl shadow-2xl border border-slate-800">

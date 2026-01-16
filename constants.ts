@@ -4,7 +4,10 @@ import { Role, Quadrant, TaskStatus, User, Department, Task } from './types';
 export const DEPARTMENTS: Department[] = [
   { id: 'dept-1', name: 'Kỹ thuật' },
   { id: 'dept-2', name: 'Kinh doanh' },
-  { id: 'dept-3', name: 'Nhân sự' }
+  { id: 'dept-3', name: 'Nhân sự' },
+  { id: 'dept-4', name: 'Marketing' },
+  { id: 'dept-5', name: 'Kế toán' },
+  { id: 'dept-6', name: 'Vận hành' }
 ];
 
 export const MOCK_USERS: User[] = [
@@ -47,6 +50,62 @@ export const MOCK_USERS: User[] = [
     gender: 'Nữ',
     password: 'password123',
     createdAt: '2024-03-10T14:20:00Z',
+    createdBy: '1'
+  },
+  { 
+    id: '4', 
+    name: 'Phạm Marketing', 
+    username: 'mkt1',
+    email: 'mkt@system.com', 
+    role: Role.MANAGER, 
+    departmentId: 'dept-4', 
+    isOnline: true,
+    phoneNumber: '0933445566',
+    gender: 'Nữ',
+    password: 'password123',
+    createdAt: '2024-04-01T10:00:00Z',
+    createdBy: '1'
+  },
+  { 
+    id: '5', 
+    name: 'Nguyễn Content', 
+    username: 'content1',
+    email: 'content@system.com', 
+    role: Role.STAFF, 
+    departmentId: 'dept-4', 
+    isOnline: false,
+    phoneNumber: '0944556677',
+    gender: 'Nam',
+    password: 'password123',
+    createdAt: '2024-04-05T11:00:00Z',
+    createdBy: '1'
+  },
+  { 
+    id: '6', 
+    name: 'Đặng Kế Toán', 
+    username: 'acc1',
+    email: 'acc@system.com', 
+    role: Role.MANAGER, 
+    departmentId: 'dept-5', 
+    isOnline: true,
+    phoneNumber: '0955667788',
+    gender: 'Nữ',
+    password: 'password123',
+    createdAt: '2024-05-01T09:00:00Z',
+    createdBy: '1'
+  },
+  { 
+    id: '7', 
+    name: 'Hoàng Vận Hành', 
+    username: 'ops1',
+    email: 'ops@system.com', 
+    role: Role.STAFF, 
+    departmentId: 'dept-6', 
+    isOnline: true,
+    phoneNumber: '0966778899',
+    gender: 'Nam',
+    password: 'password123',
+    createdAt: '2024-05-15T14:00:00Z',
     createdBy: '1'
   }
 ];
@@ -110,25 +169,25 @@ export const MOCK_TASKS: Task[] = [
     endDate: overdueStr
   },
   { 
-    id: 't5', 
-    title: '⏸️ TEST: Task Tạm dừng', 
-    description: 'Đang đợi phê duyệt từ cấp trên.', 
-    quadrant: Quadrant.Q3, 
-    status: TaskStatus.PAUSED, 
-    assigneeId: '3', 
-    creatorId: '3', 
-    departmentId: 'dept-1', 
+    id: 't7', 
+    title: '📢 Chiến dịch Marketing Mùa Hè', 
+    description: 'Lên kế hoạch nội dung cho fanpage.', 
+    quadrant: Quadrant.Q2, 
+    status: TaskStatus.IN_PROGRESS, 
+    assigneeId: '5', 
+    creatorId: '4', 
+    departmentId: 'dept-4', 
     createdAt: new Date().toISOString()
   },
   { 
-    id: 't6', 
-    title: '🗑️ TEST: Task Hủy (Q4)', 
-    description: 'Việc này không quan trọng và đã bị hủy.', 
-    quadrant: Quadrant.Q4, 
-    status: TaskStatus.CANCELLED, 
-    assigneeId: '3', 
-    creatorId: '3', 
-    departmentId: 'dept-1', 
+    id: 't8', 
+    title: '📊 Báo cáo thuế quý 2', 
+    description: 'Hoàn thiện hồ sơ chứng từ.', 
+    quadrant: Quadrant.Q1, 
+    status: TaskStatus.TODO, 
+    assigneeId: '6', 
+    creatorId: '1', 
+    departmentId: 'dept-5', 
     createdAt: new Date().toISOString()
   }
 ];
@@ -147,6 +206,5 @@ export const STATUS_CONFIG: Record<TaskStatus, { title: string; color: string; b
   [TaskStatus.REDO]: { title: 'THỰC HIỆN LẠI', color: 'text-amber-600', bgColor: 'bg-amber-50' },
   [TaskStatus.PAUSED]: { title: 'TẠM DỪNG', color: 'text-orange-600', bgColor: 'bg-orange-50' },
   [TaskStatus.CANCELLED]: { title: 'HỦY', color: 'text-rose-700', bgColor: 'bg-rose-100' },
-  // Added CLOSED mapping to satisfy exhaustiveness check
   [TaskStatus.CLOSED]: { title: 'ĐÃ ĐÓNG', color: 'text-slate-900', bgColor: 'bg-slate-200' }
 };
