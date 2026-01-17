@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { User, Department } from '../../types';
 import { SettingsViewUser } from './SettingsViewUser';
 import { SettingsViewDepartments } from './SettingsViewDepartments';
 import { SettingsViewConfig } from './SettingsViewConfig';
+import { syncUsersFromMake } from '../../services/syncService';
 
 interface ApiLog {
   id: string;
@@ -67,30 +69,43 @@ export const SettingsView: React.FC<SettingsViewProps> = (props) => {
   }, [localReadUrl, localWriteUrl]);
 
   const fetchUsersFromGSheet = async () => {
-    if (!props.gsheetReadUrl) { setErrorMessage("Chưa cấu hình Webhook URL!"); return; }
+    if (!props.gsheetReadUrl) { 
+      setErrorMessage("Chưa cấu hình Webhook URL đọc dữ liệu!"); 
+      return; 
+    }
+    
     setIsSyncing(true);
     const logId = Math.random().toString(36).substr(2, 9);
     setApiLogs(prev => [{ id: logId, method: 'GET', url: props.gsheetReadUrl, action: 'SYNC NHÂN SỰ', status: 'pending', timestamp: new Date().toLocaleTimeString() }, ...prev]);
 
     try {
-      const response = await fetch(props.gsheetReadUrl);
-      const data = await response.json();
-      if (data.status === "success" || Array.isArray(data)) {
-        const usersData = Array.isArray(data) ? data : data.data;
-        props.onSyncUsers(usersData);
-        const now = new Date().toLocaleString('vi-VN');
-        setLastSync(now);
-        localStorage.setItem('last_user_sync', now);
-        setSuccessMessage(`Đồng bộ thành công ${usersData.length} tài khoản!`);
-        setApiLogs(prev => prev.map(l => l.id === logId ? { ...l, status: 'success' } : l));
-      } else throw new Error("Dữ liệu không hợp lệ");
+      // Gọi service để xử lý việc fetch và parse dữ liệu
+      const processedUsers = await syncUsersFromMake(props.gsheetReadUrl);
+      
+      props.onSyncUsers(processedUsers);
+      
+      const now = new Date().toLocaleString('vi-VN');
+      setLastSync(now);
+      localStorage.setItem('last_user_sync', now);
+      
+      setSuccessMessage(`Đồng bộ thành công ${processedUsers.length} tài khoản!`);
+      setApiLogs(prev => prev.map(l => l.id === logId ? { 
+        ...l, 
+        status: 'success', 
+        details: `Đã xử lý thành công ${processedUsers.length} nhân sự từ Make.com` 
+      } : l));
+      
     } catch (e: any) {
-      setErrorMessage(`Lỗi đồng bộ: ${e.message}`);
-      setApiLogs(prev => prev.map(l => l.id === logId ? { ...l, status: 'error' } : l));
-    } finally { setIsSyncing(false); }
+      setErrorMessage(e.message);
+      setApiLogs(prev => prev.map(l => l.id === logId ? { 
+        ...l, 
+        status: 'error', 
+        details: e.toString() 
+      } : l));
+    } finally { 
+      setIsSyncing(false); 
+    }
   };
-
-  // Removed handleCancelAction as it was unused and caused TS errors
 
   return (
     <div className="max-w-7xl mx-auto pb-20">
@@ -149,6 +164,16 @@ export const SettingsView: React.FC<SettingsViewProps> = (props) => {
           )}
         </div>
       </div>
+
+      {(successMessage || errorMessage) && createPortal(
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[30000] animate-in slide-in-from-bottom-10 duration-500 w-[calc(100%-2rem)] md:w-auto">
+          <div className={`px-10 py-5 rounded-2xl shadow-2xl border flex items-center gap-4 ${successMessage ? 'bg-[#111827] text-emerald-400 border-emerald-500/20' : 'bg-[#111827] text-rose-400 border-rose-500/20'}`}>
+            <span className="text-xl">{successMessage ? '✅' : '❌'}</span>
+            <span className="text-[11px] font-black uppercase tracking-widest">{successMessage || errorMessage}</span>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

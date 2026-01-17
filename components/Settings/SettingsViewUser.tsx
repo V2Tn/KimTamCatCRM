@@ -248,8 +248,13 @@ export const SettingsViewUser: React.FC<SettingsViewUserProps> = ({
           </div>
         </div>
         <div className="flex gap-2 md:gap-3 w-full md:w-auto">
-          <button onClick={onSync} disabled={isSyncing} className={`flex-1 md:flex-none px-4 md:px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-2xl border transition-all flex items-center justify-center gap-2 shadow-sm ${isSyncing ? 'bg-indigo-50 text-indigo-400 border-indigo-100 animate-pulse' : 'bg-white text-indigo-600 border-slate-200 hover:bg-slate-50 active:scale-95'}`}>
-            {isSyncing ? '⌛' : '🔄'} {isSyncing ? 'ĐANG ĐỒNG BỘ...' : 'ĐỒNG BỘ'}
+          <button 
+            onClick={onSync} 
+            disabled={isSyncing} 
+            className={`flex-1 md:flex-none px-4 md:px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-2xl border transition-all flex items-center justify-center gap-2 shadow-sm ${isSyncing ? 'bg-indigo-50 text-indigo-400 border-indigo-100' : 'bg-white text-indigo-600 border-slate-200 hover:bg-slate-50 active:scale-95'}`}
+          >
+            {isSyncing ? <span className="animate-spin">⏳</span> : '🔄'} 
+            {isSyncing ? 'ĐANG ĐỒNG BỘ...' : 'ĐỒNG BỘ'}
           </button>
           <button onClick={() => setShowAddUserModal(true)} className="flex-1 md:flex-none px-4 md:px-6 py-3 bg-[#111827] hover:bg-black text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-indigo-100 transition-all active:scale-95">
             + THÊM MỚI

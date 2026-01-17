@@ -38,6 +38,10 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : null;
   });
 
+  // Quản lý URL cấu hình bằng state để cập nhật tức thì
+  const [gsheetReadUrl, setGsheetReadUrl] = useState(() => localStorage.getItem('gs_read') || '');
+  const [gsheetWriteUrl, setGsheetWriteUrl] = useState(() => localStorage.getItem('gs_write') || '');
+
   const [currentView, setCurrentView] = useState<AppView>('dashboard');
   const [activeTab, setActiveTab] = useState<TabType>('Hôm nay');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -82,7 +86,6 @@ const App: React.FC = () => {
   const selectedTask = visibleTasks.find(t => t.id === selectedTaskId);
   const checkCanDelete = (task: Task) => currentUser.role !== 'STAFF' || task.creatorId === currentUser.id;
 
-  // Logic readonly mở rộng: Ẩn nút lưu nếu đang ở view Nhân sự HOẶC Dashboard nhưng tab không phải "Hôm nay"
   const isModalReadonly = currentView === 'staff_management' || (currentView === 'dashboard' && activeTab !== 'Hôm nay');
 
   return (
@@ -117,10 +120,10 @@ const App: React.FC = () => {
             users={users} 
             departments={departments} 
             currentUser={currentUser}
-            gsheetReadUrl={localStorage.getItem('gs_read') || ''}
-            gsheetWriteUrl={localStorage.getItem('gs_write') || ''}
-            onUpdateReadUrl={(u) => localStorage.setItem('gs_read', u)}
-            onUpdateWriteUrl={(u) => localStorage.setItem('gs_write', u)}
+            gsheetReadUrl={gsheetReadUrl}
+            gsheetWriteUrl={gsheetWriteUrl}
+            onUpdateReadUrl={(u) => { localStorage.setItem('gs_read', u); setGsheetReadUrl(u); }}
+            onUpdateWriteUrl={(u) => { localStorage.setItem('gs_write', u); setGsheetWriteUrl(u); }}
             onAddUser={addUser} 
             onUpdateUser={updateUser} 
             onDeleteUser={deleteUser}
