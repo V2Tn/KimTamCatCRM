@@ -4,7 +4,7 @@ import { Quadrant, Role, User } from "../types";
 
 export const analyzeTask = async (title: string, description: string): Promise<{ quadrant: Quadrant; reasoning: string }> => {
   // Use gemini-3-pro-preview for complex reasoning tasks like matrix analysis
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
