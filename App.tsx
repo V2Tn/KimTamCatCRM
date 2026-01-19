@@ -17,6 +17,15 @@ type ViewMode = 'list' | 'matrix';
 type AppView = 'dashboard' | 'settings' | 'staff_management';
 
 const App: React.FC = () => {
+  // Quản lý URL cấu hình bằng state
+  const [gsheetReadUrl, setGsheetReadUrl] = useState(() => localStorage.getItem('gs_read') || '');
+  const [gsheetWriteUrl, setGsheetWriteUrl] = useState(() => localStorage.getItem('gs_write') || '');
+
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('auth_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+
   const { 
     users, 
     departments, 
@@ -27,20 +36,11 @@ const App: React.FC = () => {
     addDepartment,
     updateDepartment,
     deleteDepartment
-  } = useUsers();
+  } = useUsers(gsheetWriteUrl, currentUser?.id);
   
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
     return localStorage.getItem('is_authenticated') === 'true';
   });
-
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('auth_user');
-    return saved ? JSON.parse(saved) : null;
-  });
-
-  // Quản lý URL cấu hình bằng state để cập nhật tức thì
-  const [gsheetReadUrl, setGsheetReadUrl] = useState(() => localStorage.getItem('gs_read') || '');
-  const [gsheetWriteUrl, setGsheetWriteUrl] = useState(() => localStorage.getItem('gs_write') || '');
 
   const [currentView, setCurrentView] = useState<AppView>('dashboard');
   const [activeTab, setActiveTab] = useState<TabType>('Hôm nay');

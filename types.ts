@@ -31,6 +31,12 @@ export interface Attachment {
 export interface Department {
   id: string;
   name: string;
+  createdAt?: string;
+  createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+  deletedAt?: string;
+  deletedBy?: string;
 }
 
 export interface User {
@@ -40,7 +46,7 @@ export interface User {
   email: string;
   role: Role;
   departmentId?: string;
-  isOnline?: boolean;
+  isOnline?: number; // 1: Online, 2: Offline
   phoneNumber?: string;
   password?: string;
   gender?: 'Nam' | 'Nữ' | 'Khác';

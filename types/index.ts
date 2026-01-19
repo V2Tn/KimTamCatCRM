@@ -26,17 +26,22 @@ export enum TaskStatus {
 export interface Department {
   id: string;
   name: string;
+  createdAt?: string;
+  createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+  deletedAt?: string;
+  deletedBy?: string;
 }
 
 export interface User {
   id: string;
   name: string;
-  // username is required for authentication and consistency across the app
   username: string;
   email: string;
   role: Role;
   departmentId?: string;
-  isOnline?: boolean;
+  isOnline?: number; // 1: Online, 2: Offline
   phoneNumber?: string;
   password?: string;
   gender?: 'Nam' | 'Nữ' | 'Khác';

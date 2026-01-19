@@ -8,10 +8,9 @@ export const DEPARTMENTS: Department[] = [
 ];
 
 export const MOCK_USERS: User[] = [
-  // Fixed: Added missing required 'username' property to match User type definition
-  { id: '1', name: 'Hệ thống', username: 'admin', email: 'admin@system.com', role: Role.SUPER_ADMIN, isOnline: true },
-  { id: '2', name: 'Trần Manager', username: 'manager1', email: 'manager.tech@system.com', role: Role.MANAGER, departmentId: 'dept-1', isOnline: true },
-  { id: '3', name: 'Lê Staff', username: 'staff1', email: 'staff.tech@system.com', role: Role.STAFF, departmentId: 'dept-1', isOnline: false }
+  { id: '1', name: 'Hệ thống', username: 'admin', email: 'admin@system.com', role: Role.SUPER_ADMIN, isOnline: 1 },
+  { id: '2', name: 'Trần Manager', username: 'manager1', email: 'manager.tech@system.com', role: Role.MANAGER, departmentId: 'dept-1', isOnline: 1 },
+  { id: '3', name: 'Lê Staff', username: 'staff1', email: 'staff.tech@system.com', role: Role.STAFF, departmentId: 'dept-1', isOnline: 2 }
 ];
 
 export const QUADRANT_CONFIG = {

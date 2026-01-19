@@ -119,7 +119,7 @@ export const SettingsViewUser: React.FC<SettingsViewUserProps> = ({
   const [showUpdateConfirmModal, setShowUpdateConfirmModal] = useState(false);
   const [editFields, setEditFields] = useState<Partial<User>>({});
   const [newUserFields, setNewUserFields] = useState<Partial<User>>({
-    name: '', username: '', email: '', phoneNumber: '', gender: 'Nam', role: Role.STAFF, departmentId: departments[0]?.id || '', password: '', isOnline: false, image_avatar: ''
+    name: '', username: '', email: '', phoneNumber: '', gender: 'Nam', role: Role.STAFF, departmentId: departments[0]?.id || '', password: '', isOnline: 2, image_avatar: ''
   });
 
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -169,11 +169,11 @@ export const SettingsViewUser: React.FC<SettingsViewUserProps> = ({
     }
 
     try {
-      onAddUser({ ...newUserFields, createdAt: new Date().toISOString() });
+      onAddUser({ ...newUserFields });
       triggerToast("Thêm nhân viên mới thành công!");
       setShowAddUserModal(false);
       setNewUserFields({
-        name: '', username: '', email: '', phoneNumber: '', gender: 'Nam', role: Role.STAFF, departmentId: departments[0]?.id || '', password: '', isOnline: false, image_avatar: ''
+        name: '', username: '', email: '', phoneNumber: '', gender: 'Nam', role: Role.STAFF, departmentId: departments[0]?.id || '', password: '', isOnline: 2, image_avatar: ''
       });
     } catch (e) {
       triggerToast("Lỗi hệ thống khi tạo tài khoản!", "error");
@@ -267,7 +267,7 @@ export const SettingsViewUser: React.FC<SettingsViewUserProps> = ({
           <div key={user.id} onClick={() => { setSelectedUser(user); setEditFields(user); setPhoneError(null); }} className="group flex items-center gap-4 bg-white p-4 md:p-5 rounded-[2rem] border border-slate-100 hover:border-indigo-100 hover:shadow-xl transition-all duration-300 cursor-pointer min-w-0">
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-lg font-black text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm flex-shrink-0 overflow-hidden relative border border-slate-50">
               {user.image_avatar ? <img src={user.image_avatar} className="w-full h-full object-cover" /> : user.name.charAt(0)}
-              <div className={`absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${user.isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+              <div className={`absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${user.isOnline === 1 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`} />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[13px] md:text-[14px] font-black text-slate-800 truncate uppercase tracking-tight leading-tight">{user.name}</p>
@@ -280,7 +280,7 @@ export const SettingsViewUser: React.FC<SettingsViewUserProps> = ({
         ))}
       </div>
 
-      {/* Add User Modal - Z-index: 1000 */}
+      {/* Add User Modal */}
       {showAddUserModal && createPortal(
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[1000] flex items-center justify-center p-0 md:p-4 animate-in fade-in duration-300">
            <div className="bg-white md:rounded-[3rem] shadow-2xl w-full md:max-w-6xl h-full md:h-auto md:max-h-[95vh] flex flex-col animate-in zoom-in-95 duration-200 border border-white/20 overflow-hidden">
@@ -306,8 +306,8 @@ export const SettingsViewUser: React.FC<SettingsViewUserProps> = ({
                     <div className="w-full space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center block">TRẠNG THÁI KHỞI TẠO</label>
                       <div className="w-full py-4 rounded-2xl flex items-center justify-center gap-3 border-2 bg-indigo-50 border-indigo-100 text-indigo-600">
-                        <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_12px_rgba(79,70,229,0.5)]" />
-                        <span className="text-[11px] font-black uppercase tracking-[0.2em]">TÀI KHOẢN MỚI</span>
+                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+                        <span className="text-[11px] font-black uppercase tracking-[0.2em]">OFFLINE (2)</span>
                       </div>
                     </div>
                   </div>
@@ -345,7 +345,7 @@ export const SettingsViewUser: React.FC<SettingsViewUserProps> = ({
         document.body
       )}
 
-      {/* Edit User Modal - Z-index: 1000 */}
+      {/* Edit User Modal */}
       {selectedUser && createPortal(
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[1000] flex items-center justify-center p-0 md:p-4 animate-in fade-in duration-300">
           <div className="bg-white md:rounded-[3rem] shadow-2xl w-full md:max-w-6xl h-full md:h-auto md:max-h-[95vh] flex flex-col animate-in zoom-in-95 duration-200 border border-white/20 overflow-hidden">
@@ -373,10 +373,10 @@ export const SettingsViewUser: React.FC<SettingsViewUserProps> = ({
                   
                   <div className="w-full space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center block">TRẠNG THÁI HIỆN TẠI</label>
-                    <div className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 border-2 transition-all ${selectedUser.isOnline ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
-                      <div className={`w-3 h-3 rounded-full ${selectedUser.isOnline ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`} />
+                    <div className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 border-2 transition-all ${selectedUser.isOnline === 1 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
+                      <div className={`w-3 h-3 rounded-full ${selectedUser.isOnline === 1 ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`} />
                       <span className="text-[11px] font-black uppercase tracking-[0.2em]">
-                        {selectedUser.isOnline ? 'ĐANG TRỰC TUYẾN' : 'ĐANG NGOẠI TUYẾN'}
+                        {selectedUser.isOnline === 1 ? 'ONLINE (1)' : 'OFFLINE (2)'}
                       </span>
                     </div>
                   </div>
@@ -385,6 +385,13 @@ export const SettingsViewUser: React.FC<SettingsViewUserProps> = ({
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 text-center">NGÀY THAM GIA</p>
                     <p className="text-[11px] md:text-[12px] font-black text-slate-800 text-center uppercase tracking-tight">{formatDate(selectedUser.createdAt)}</p>
                   </div>
+                  
+                  {selectedUser.updatedAt && (
+                    <div className="w-full p-4 md:p-5 bg-indigo-50/30 rounded-[2rem] border border-indigo-100/20">
+                      <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1 text-center">CẬP NHẬT CUỐI</p>
+                      <p className="text-[10px] font-black text-slate-600 text-center uppercase tracking-tight">{formatDate(selectedUser.updatedAt)}</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-6 md:space-y-10">
@@ -422,7 +429,7 @@ export const SettingsViewUser: React.FC<SettingsViewUserProps> = ({
         document.body
       )}
 
-      {/* Delete Confirmation Modal - Z-index higher than current modal */}
+      {/* Delete Confirmation Modal */}
       {showDeleteModal && createPortal(
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[1100] flex items-center justify-center p-4">
            <div className="bg-white p-10 rounded-[3rem] shadow-2xl max-w-sm w-full text-center space-y-6 animate-in zoom-in-95">
@@ -437,7 +444,7 @@ export const SettingsViewUser: React.FC<SettingsViewUserProps> = ({
         document.body
       )}
 
-      {/* Update Confirmation Modal - Z-index higher than current modal */}
+      {/* Update Confirmation Modal */}
       {showUpdateConfirmModal && createPortal(
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[1100] flex items-center justify-center p-4">
            <div className="bg-white p-10 rounded-[3rem] shadow-2xl max-w-sm w-full text-center space-y-6 animate-in zoom-in-95">
@@ -452,7 +459,7 @@ export const SettingsViewUser: React.FC<SettingsViewUserProps> = ({
         document.body
       )}
 
-      {/* Notifications - Z-index: 30000 */}
+      {/* Notifications */}
       {localToast && createPortal(
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[30000] animate-in slide-in-from-bottom-10 duration-500 w-[calc(100%-2rem)] md:w-auto">
           <div className={`px-10 py-5 rounded-2xl shadow-2xl border flex items-center gap-4 ${localToast.type === 'success' ? 'bg-[#111827] text-emerald-400 border-emerald-500/20' : 'bg-[#111827] text-rose-400 border-rose-500/20'}`}>
