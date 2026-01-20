@@ -2,12 +2,16 @@
 import { Role, Quadrant, TaskStatus, User, Department, Task } from './types';
 
 export const DEPARTMENTS: Department[] = [
-  { id: 'dept-1', name: 'Kỹ thuật' },
-  { id: 'dept-2', name: 'Kinh doanh' },
-  { id: 'dept-3', name: 'Nhân sự' },
-  { id: 'dept-4', name: 'Marketing' },
-  { id: 'dept-5', name: 'Kế toán' },
-  { id: 'dept-6', name: 'Vận hành' }
+  { id: '1', name: 'Kinh doanh' },
+  { id: '2', name: 'Kế toán' },
+  { id: '3', name: 'Nhân sự' },
+  { id: '4', name: 'CSKH' },
+  { id: '5', name: 'Media' },
+  { id: '6', name: 'Thủ kho' },
+  { id: '7', name: 'Mật cách' },
+  { id: '8', name: 'Tele sale' },
+  { id: '9', name: 'Vận hành' },
+  { id: '10', name: 'Nhập liệu' }
 ];
 
 export const MOCK_USERS: User[] = [
@@ -23,174 +27,10 @@ export const MOCK_USERS: User[] = [
     password: 'admin',
     createdAt: '2024-01-01T08:00:00Z',
     createdBy: '0'
-  },
-  { 
-    id: '2', 
-    name: 'Trần Manager', 
-    username: 'manager1',
-    email: 'manager.tech@system.com', 
-    role: Role.MANAGER, 
-    departmentId: 'dept-1', 
-    isOnline: 1,
-    phoneNumber: '0912345678',
-    gender: 'Nam',
-    password: 'password123',
-    createdAt: '2024-02-15T09:30:00Z',
-    createdBy: '1'
-  },
-  { 
-    id: '3', 
-    name: 'Lê Staff', 
-    username: 'staff1',
-    email: 'staff.tech@system.com', 
-    role: Role.STAFF, 
-    departmentId: 'dept-1', 
-    isOnline: 2,
-    phoneNumber: '0923456789',
-    gender: 'Nữ',
-    password: 'password123',
-    createdAt: '2024-03-10T14:20:00Z',
-    createdBy: '1'
-  },
-  { 
-    id: '4', 
-    name: 'Phạm Marketing', 
-    username: 'mkt1',
-    email: 'mkt@system.com', 
-    role: Role.MANAGER, 
-    departmentId: 'dept-4', 
-    isOnline: 1,
-    phoneNumber: '0933445566',
-    gender: 'Nữ',
-    password: 'password123',
-    createdAt: '2024-04-01T10:00:00Z',
-    createdBy: '1'
-  },
-  { 
-    id: '5', 
-    name: 'Nguyễn Content', 
-    username: 'content1',
-    email: 'content@system.com', 
-    role: Role.STAFF, 
-    departmentId: 'dept-4', 
-    isOnline: 2,
-    phoneNumber: '0944556677',
-    gender: 'Nam',
-    password: 'password123',
-    createdAt: '2024-04-05T11:00:00Z',
-    createdBy: '1'
-  },
-  { 
-    id: '6', 
-    name: 'Đặng Kế Toán', 
-    username: 'acc1',
-    email: 'acc@system.com', 
-    role: Role.MANAGER, 
-    departmentId: 'dept-5', 
-    isOnline: 1,
-    phoneNumber: '0955667788',
-    gender: 'Nữ',
-    password: 'password123',
-    createdAt: '2024-05-01T09:00:00Z',
-    createdBy: '1'
-  },
-  { 
-    id: '7', 
-    name: 'Hoàng Vận Hành', 
-    username: 'ops1',
-    email: 'ops@system.com', 
-    role: Role.STAFF, 
-    departmentId: 'dept-6', 
-    isOnline: 1,
-    phoneNumber: '0966778899',
-    gender: 'Nam',
-    password: 'password123',
-    createdAt: '2024-05-15T14:00:00Z',
-    createdBy: '1'
   }
 ];
 
-// Tạo ngày trong quá khứ để test Tồn đọng
-const pastDate = new Date();
-pastDate.setDate(pastDate.getDate() - 5);
-const overdueStr = pastDate.toISOString();
-
-// Tạo ngày trong tương lai
-const futureDate = new Date();
-futureDate.setDate(futureDate.getDate() + 5);
-const futureStr = futureDate.toISOString();
-
-export const MOCK_TASKS: Task[] = [
-  { 
-    id: 't1', 
-    title: '⚠️ TEST: Task Tồn đọng (Manager giao cho Staff)', 
-    description: 'Task này đã quá hạn và chưa xong. Sẽ hiện icon cảnh báo và ẩn Quick Actions nếu log bằng Staff.', 
-    quadrant: Quadrant.Q1, 
-    status: TaskStatus.TODO, 
-    assigneeId: '3', 
-    creatorId: '2', 
-    departmentId: 'dept-1', 
-    createdAt: overdueStr,
-    endDate: overdueStr 
-  },
-  { 
-    id: 't2', 
-    title: '🎯 TEST: Task Tự giao (Hiện "Tôi" và Quick Actions)', 
-    description: 'Bạn tự giao task này cho mình. Sẽ thấy dòng "Giao bởi: Tôi" và đầy đủ nút hành động.', 
-    quadrant: Quadrant.Q1, 
-    status: TaskStatus.IN_PROGRESS, 
-    assigneeId: '2', 
-    creatorId: '2', 
-    departmentId: 'dept-1', 
-    createdAt: new Date().toISOString(),
-    endDate: futureStr
-  },
-  { 
-    id: 't3', 
-    title: '🔄 TEST: Task Thực hiện lại (Redo)', 
-    description: 'Công việc này bị Manager yêu cầu làm lại.', 
-    quadrant: Quadrant.Q2, 
-    status: TaskStatus.REDO, 
-    assigneeId: '3', 
-    creatorId: '2', 
-    departmentId: 'dept-1', 
-    createdAt: overdueStr
-  },
-  { 
-    id: 't4', 
-    title: '✅ TEST: Task Quá hạn nhưng đã xong', 
-    description: 'Mặc dù endDate đã qua nhưng status là DONE nên không hiện cảnh báo tồn đọng.', 
-    quadrant: Quadrant.Q2, 
-    status: TaskStatus.DONE, 
-    assigneeId: '3', 
-    creatorId: '2', 
-    departmentId: 'dept-1', 
-    createdAt: overdueStr,
-    endDate: overdueStr
-  },
-  { 
-    id: 't7', 
-    title: '📢 Chiến dịch Marketing Mùa Hè', 
-    description: 'Lên kế hoạch nội dung cho fanpage.', 
-    quadrant: Quadrant.Q2, 
-    status: TaskStatus.IN_PROGRESS, 
-    assigneeId: '5', 
-    creatorId: '4', 
-    departmentId: 'dept-4', 
-    createdAt: new Date().toISOString()
-  },
-  { 
-    id: 't8', 
-    title: '📊 Báo cáo thuế quý 2', 
-    description: 'Hoàn thiện hồ sơ chứng từ.', 
-    quadrant: Quadrant.Q1, 
-    status: TaskStatus.TODO, 
-    assigneeId: '6', 
-    creatorId: '1', 
-    departmentId: 'dept-5', 
-    createdAt: new Date().toISOString()
-  }
-];
+export const MOCK_TASKS: Task[] = [];
 
 export const QUADRANT_CONFIG = {
   [Quadrant.Q1]: { title: 'Làm ngay', icon: '🔥', color: 'text-red-600', bgColor: 'bg-red-50', borderColor: 'border-red-200', tagBg: 'bg-red-100', tagText: 'text-red-700' },
